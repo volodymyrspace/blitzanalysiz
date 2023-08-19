@@ -18,14 +18,13 @@ home = ["HTML", "RSS", "SEARCH"]
 [[module.imports]]
 path = 'hugo-theme-relearn'
 
-
 [markup.goldmark.renderer]
 unsafe = true
 
-# [sitemap]
-# changeFreq = 'monthly'
-# filename = 'sitemap.xml'
-# priority = -1
+[sitemap]
+changeFreq = 'monthly'
+filename = 'sitemap.xml'
+priority = -1
 
 [params]
 # This controls whether submenus will be expanded (true), or collapsed (false) in the
