@@ -1,16 +1,16 @@
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-  fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, error = FALSE,
-  dev = "svglite", fig.ext = "svgz"
+    fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, error = FALSE,
+    dev = "svglite", fig.ext = "svgz"
 )
 # Checks
 stopifnot(exists("target_page"))
 # stopifnot(exists('stats.career '))
 update <- get_path_elem(target_page, 2)
 cols.sel <- c(
-  "account_id", "tank_id", "name", "tier", "is_premium", "wins",
-  "battles", "battles.career", "wins.career", "battles.career.all",
-  "WR.career.all"
+    "account_id", "tank_id", "name", "tier", "is_premium", "wins",
+    "battles", "battles.career", "wins.career", "battles.career.all",
+    "WR.career.all"
 )
 if (exists("stats.career")) rm(stats.career)
 stats.career <- ds_load_ts_career(update, cols = cols.sel)
@@ -18,21 +18,17 @@ tanks.enough_players <- get_tanks_enough_players(stats.career)
 preliminary <- is_preliminary(update) # not used atm
 var2rm <- c("res", "stats.career")
 ```
-
 ---
 title: "Career stats" 
 menutitle: "Career stats"
 linktitle: "Career stats (`r update_version(update)`)"
 date: `r today("UTC")`
 author: Jylpah@gmail.com
-disableToc: false
 output: md_document
 weight: 3
 description: "Analysis of Player career stats in World of Tanks Blitz mobile tank game. Update `r update`"
 tags: [ "`r update`", "Career stats"  ]
-autohide: true
-hidden: true
-alwaysopen: false
+disableToc: false
 ---
 
 `r update_if_final(update, '', '_Preliminary stats_')`
@@ -45,12 +41,12 @@ Number of career/cumulative battles per player in the end of the update `r updat
 
 ```{r fig_career_battle_count_histogram}
 res <- stats.career[, .(Battles = first(battles.career.all)),
-  by = account_id
+    by = account_id
 ]
 plot_histogram(res, "Career Battles per Players", update,
-  "Battles", "Share of Players %",
-  x_lims = c(0, 100e3), x_step = 5000, y_step = 2.5 / 100, x_signif = 2,
-  y_pct = TRUE, y_signif = 2
+    "Battles", "Share of Players %",
+    x_lims = c(0, 100e3), x_step = 5000, y_step = 2.5 / 100, x_signif = 2,
+    y_pct = TRUE, y_signif = 2
 )
 
 res <- res[, .(mean = mean(Battles), median = median(Battles), max = max(Battles))]
@@ -66,7 +62,7 @@ The table below shows the (max) number of battles played until the end of `r upd
 
 ```{r career_battle_count_summary, echo = FALSE}
 md_table_quantiles(stats.career[, .(Battles = first(battles.career.all)),
-  by = account_id
+    by = account_id
 ][, Battles], "Battles", c(seq(0, .9, .05), seq(.91, 1, 0.01)))
 ```
 {{% /expand %}}
@@ -77,29 +73,29 @@ The following graph shows a histogram of players (y-axis) with certain career WR
 
 ```{r fig_career_player_WR_histogram}
 res <- stats.career[, .(WR = first(WR.career.all)),
-  by = account_id
+    by = account_id
 ]
 plot_histogram(res, "Player Career WR distribution", update,
-  x_name = "WR", y_name = "Share of Players",
-  x_lims = c(.2, .8), x_step = .05, x_pct = TRUE,
-  y_pct = TRUE, y_step = .01, binwidth = .01
+    x_name = "WR", y_name = "Share of Players",
+    x_lims = c(.2, .8), x_step = .05, x_pct = TRUE,
+    y_pct = TRUE, y_step = .01, binwidth = .01
 )
 ```
 
 {{% expand "Show table" %}}
 ```{r career_player_WR, echo = FALSE}
 h <- hist(stats.career[,
-  .(WR = first(WR.career.all)),
-  by = account_id
+    .(WR = first(WR.career.all)),
+    by = account_id
 ][, WR], breaks = 100, plot = FALSE)
 sum.counts <- sum(h$counts)
 h$density <- h$counts / sum.counts
 h$cum <- cumsum(h$density)
 len <- length(h$breaks)
 res <- data.table(
-  "Career WR" = h$breaks[2:len],
-  "Share %" = h$density,
-  "Cumulative share %" = h$cum
+    "Career WR" = h$breaks[2:len],
+    "Share %" = h$density,
+    "Cumulative share %" = h$cum
 )[(`Career WR` >= .2) & (`Career WR` < .81)]
 md_table(res)
 ```
@@ -116,21 +112,21 @@ fill_name <- "WR"
 title <- "Current WR by Career Battles"
 
 res <- stats.career[, .(
-  "WR" = sum(wins) / sum(battles),
-  "Battles" = first(battles.career.all)
+    "WR" = sum(wins) / sum(battles),
+    "Battles" = first(battles.career.all)
 ),
 by = account_id
 ][, .N, by = .(
-  Battles = cut(Battles, breaks = buckets.battles.career, include.lowest = TRUE),
-  WR = cut(WR, breaks = buckets.WR, include.lowest = TRUE)
+    Battles = cut(Battles, breaks = buckets.battles.career, include.lowest = TRUE),
+    WR = cut(WR, breaks = buckets.WR, include.lowest = TRUE)
 )][order(Battles, WR)]
 
 x_labels <- auto_range_format(buckets.battles.career)
 fill_labels <- percent_range_format(buckets.WR)
 
 plot_marimekko(res, title, update,
-  x_name = "Battles", fill_var = "WR", palette.fill = palette.WN8,
-  x_labels = x_labels, fill_labels = fill_labels
+    x_name = "Battles", fill_var = "WR", palette.fill = palette.WN8,
+    x_labels = x_labels, fill_labels = fill_labels
 )
 ```
 
@@ -145,21 +141,21 @@ fill_name <- "WR"
 title <- "Career WR by Career Battles"
 
 res <- stats.career[, .(
-  "WR" = first(WR.career.all),
-  "Battles" = first(battles.career.all)
+    "WR" = first(WR.career.all),
+    "Battles" = first(battles.career.all)
 ),
 by = account_id
 ][, .N, by = .(
-  Battles = cut(Battles, breaks = buckets.battles.career, include.lowest = TRUE),
-  WR = cut(WR, breaks = buckets.WR, include.lowest = TRUE)
+    Battles = cut(Battles, breaks = buckets.battles.career, include.lowest = TRUE),
+    WR = cut(WR, breaks = buckets.WR, include.lowest = TRUE)
 )][order(Battles, WR)]
 
 x_labels <- auto_range_format(buckets.battles.career)
 fill_labels <- percent_range_format(buckets.WR)
 
 plot_marimekko(res, title, update,
-  x_name = "Battles", fill_var = "WR", palette.fill = palette.WN8,
-  x_labels = x_labels, fill_labels = fill_labels
+    x_name = "Battles", fill_var = "WR", palette.fill = palette.WN8,
+    x_labels = x_labels, fill_labels = fill_labels
 )
 ```
 
@@ -170,12 +166,12 @@ The following graph shows a histogram of share of players (y-axis) average tier 
 
 ```{r fig_career_player_avg_tier_histogram}
 res <- stats.career[battles.career.all > min_battles.career,
-  .("Average Tier" = sum(tier * battles.career) / first(battles.career.all)),
-  by = account_id
+    .("Average Tier" = sum(tier * battles.career) / first(battles.career.all)),
+    by = account_id
 ]
 plot_histogram(res, "Average Tier", update,
-  "Average Tier", "Share of Players %",
-  x_lims = c(1, 10), x_step = 1, y_step = 0.01
+    "Average Tier", "Share of Players %",
+    x_lims = c(1, 10), x_step = 1, y_step = 0.01
 )
 ```
 
@@ -185,14 +181,14 @@ This graph shows player Career WR vs. average tier until the end of update `r up
 
 ```{r fig_career_WR_vs_avg_tier,warning=FALSE,message=FALSE}
 res <- stats.career[battles.career.all > min_battles.career,
-  .(
-    "Career WR" = first(WR.career.all),
-    "Average Tier" = sum(tier * battles.career) / first(battles.career.all)
-  ),
-  by = account_id
+    .(
+        "Career WR" = first(WR.career.all),
+        "Average Tier" = sum(tier * battles.career) / first(battles.career.all)
+    ),
+    by = account_id
 ][order(`Career WR`)][sample(.N, min(.N, 50e3))]
 plot_average_XY(res, "Player Career WR vs. Average Tier", update, "Average Tier", "Career WR",
-  x_breaks = seq(1, 10), y_breaks = seq(0, 1, .1), y_pct = TRUE, y_lims = c(.3, .7), panel_top = TRUE
+    x_breaks = seq(1, 10), y_breaks = seq(0, 1, .1), y_pct = TRUE, y_lims = c(.3, .7), panel_top = TRUE
 )
 ```
 
@@ -202,9 +198,9 @@ This graph shows average number of career battles per tier.
 
 ```{r fig_career_battles_per_tier}
 res <- stats.career[, .(Battles = sum(battles.career)),
-  by = .(account_id, tier)
+    by = .(account_id, tier)
 ][, .(Battles = mean(Battles)),
-  by = .(Tier = tier)
+    by = .(Tier = tier)
 ][order(Tier)]
 res <- prep_plot_tier(res, "Battles")
 plot_col_continuous_1Y(res, "Average Battles per Tier", update, "Tier", "Battles", y_pct = FALSE, y_step = 500)
@@ -217,10 +213,10 @@ This graph shows the tanks with the most players. This counts all the battles pl
 
 ```{r fig_career_tanks_most_popular}
 res <- head(stats.career[, .(
-  "Average WR" = DT_ratio(wins.career, battles.career),
-  "Battles/Player" = mean(battles.career),
-  "Players" = uniqueN(account_id),
-  "Premium" = first(is_premium)
+    "Average WR" = DT_ratio(wins.career, battles.career),
+    "Battles/Player" = mean(battles.career),
+    "Players" = uniqueN(account_id),
+    "Premium" = first(is_premium)
 ),
 by = name
 ][order(-Players)], n = 20)
@@ -243,20 +239,20 @@ This graph shows the most played tanks by their owners during their career. More
 
 ```{r fig_career_tanks_most_battles}
 res <- head(stats.career[, .(
-  "Average WR" = DT_ratio(wins.career, battles.career),
-  "Battles/Player" = mean(battles.career),
-  "Battles" = sum(battles.career),
-  "Players" = uniqueN(account_id),
-  "Premium" = first(is_premium)
+    "Average WR" = DT_ratio(wins.career, battles.career),
+    "Battles/Player" = mean(battles.career),
+    "Battles" = sum(battles.career),
+    "Players" = uniqueN(account_id),
+    "Premium" = first(is_premium)
 ),
 by = name
 ][order(-`Battles`)], n = 20)
 res <- prep_plot_tank(res, "Battles")
 
 plot_col_discrete_1Y(res, "Most Battles", update,
-  "Tank", "Battles",
-  fill_var = "Tank type",
-  y_pct = FALSE, y_steps = 20
+    "Tank", "Battles",
+    fill_var = "Tank type",
+    y_pct = FALSE, y_steps = 20
 )
 ```
 ### Most played Tanks - Table
@@ -273,10 +269,10 @@ This graph shows the most played tanks by their owners during their career (=bat
 
 ```{r fig_career_tanks_most_played}
 res <- head(stats.career[, .(
-  "Average WR" = DT_ratio(wins.career, battles.career),
-  "Battles/Player" = mean(battles.career),
-  "Players" = uniqueN(account_id),
-  "Premium" = first(is_premium)
+    "Average WR" = DT_ratio(wins.career, battles.career),
+    "Battles/Player" = mean(battles.career),
+    "Players" = uniqueN(account_id),
+    "Premium" = first(is_premium)
 ),
 by = name
 ][order(-`Battles/Player`)], n = 20)

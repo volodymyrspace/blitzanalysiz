@@ -1,16 +1,15 @@
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, dev = 'svglite', fig.ext = 'svgz')
+knitr::opts_chunk$set(echo = TRUE, dev = "svglite", fig.ext = "svgz")
 update.latest <- get_latest_update()
 ```
 ---
 title: Changelog
 date: `r today("UTC")`
 author: Jylpah@gmail.com
-disableToc: false
 output: md_document
 weight: 11
-alwaysopen: false
-hidden: false
+disableToc: false
+alwaysopen: true
 ---
 
 #### 2023-03-25

@@ -11,10 +11,10 @@ hidden: false
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, dev = 'svglite', fig.ext = 'svgz')
+knitr::opts_chunk$set(echo = TRUE, dev = "svglite", fig.ext = "svgz")
 ```
 
-BlitzAnalysiz[] is a site about in-depth game statistics of [Wargaming's](https://wargaming.com) 
+**BlitzAnalysiz[]** is a site about in-depth game statistics of [Wargaming's](https://wargaming.com) 
 [World of Tanks Blitz](https://wotblitz.eu/) World war II-themed multiplayer online tank game. 
 You won't find individial player statistics here - for those, please check awesome 
 [Blitzstars.com](https://blitzstars.com). Instead, the the site is about analysis of the 

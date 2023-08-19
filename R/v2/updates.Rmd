@@ -1,11 +1,11 @@
 ---
 title: "Blitz Updates" 
-menutitle: "Archive"
+menutitle: "Stats"
 date: `r today("UTC")`
 author: Jylpah@gmail.com
-disableToc: false
 output: md_document
 weight: 2
+disableToc: false
 alwaysopen: true
 ---
 ```{r setup, include=FALSE}
@@ -13,7 +13,7 @@ knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, de
 preliminary <- is_preliminary(update.latest)
 ```
 
-{{% children showhidden="true" description=false /%}} 
+{{% children showhidden="true" description=false %}} 
 
 {{% notice note %}}
 The statistics are being updated at the end of every update so those lag behind one update. 
