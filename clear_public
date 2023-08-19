@@ -1,0 +1,8 @@
+#!/bin/sh
+DIR="public"
+if [ -d "$DIR" ]; then
+	rm -Rf "${DIR}"/*
+    echo "Dir '$DIR' emptied"
+else
+    echo "No directory '$DIR'"
+fi

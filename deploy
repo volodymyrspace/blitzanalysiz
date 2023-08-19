@@ -1,0 +1,117 @@
+#!/bin/sh
+
+# If a command fails then the deploy stops
+set -e
+
+message() {
+	msg="$*"
+	printf "\033[0;32m${msg}\033[0m\n"
+}
+
+help() {
+	echo "Usage: $(basename "${0}") [-hebscg] COMMIT_MESSAGE"
+	printf "\t-h\tHelp\n"
+	printf "\t-e\tDo not check for errors\n"
+	printf "\t-b\tDo not build the site with Hugo\n"
+	printf "\t-s\tDo not rename .svgz images to .svg.gz\n"
+	printf "\t-c\tClean destination dir before building the site\n"
+	printf "\t-g\tDo not git push\n"
+	exit 0
+}
+
+CHK_ERRORS=1
+BUILD=1
+GIT=1
+SVGZ=1
+CLEAN_DIR=""
+
+while getopts 'hebgsc' option
+do
+  case "$option" in
+    	h)
+        	help
+         	;;
+	e)
+		CHK_ERRORS=0
+		;;
+	b)
+		BUILD=0
+		;;
+	g)
+		GIT=0
+		;;
+	s)
+		SVGZ=0
+		;;
+
+	c)
+		CLEAN_DIR="--cleanDestinationDir"
+		;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+if [ "${GIT}" -eq "1" ]&& [ $# -eq 0 ];  then
+    >&2 message "Pls give Git commit message"
+    exit 1
+fi
+
+message "Starting to deploy an update to GitHub..."
+
+if [ ${CHK_ERRORS} -eq "1" ]; then
+		message "Checking for errors"
+		./chk_errors && echo "OK" || exit 1
+fi
+
+echo "Press Ctrl+C to cancel now"
+sleep 3
+
+if [ ${SVGZ} -eq "1" ]; then
+	message "Renaming SVGZ files..."
+	./rename_svgz && echo "OK" || exit 1
+fi
+
+
+if [ ${BUILD} -eq "1" ]; then
+		# Build the project.
+		# if using a theme, replace with `hugo -t <YOURTHEME>`
+		message "Build site with Hugo... ${CLEAN_DIR}"
+		hugo --minify ${CLEAN_DIR}
+fi
+
+# Go To Public folder
+cd public || exit 1
+
+message "Updating /update/latest symlink"
+
+## setup /update/latest link
+LATEST="$(find update/  -maxdepth 1 -mindepth 1 -type d| sort --version-sort | cut -d / -f 2 |tail -n 1)"
+rm -f update/latest latest
+ln -s "${LATEST}" update/latest
+ln -s "update/${LATEST}" latest
+
+message "Cleaning up search index"
+## Search index
+[ -d "../tmp" ]  ||  mkdir ../tmp
+
+cp index.json ../tmp/
+jq --arg LATEST "/update/${LATEST}/" '[.[] | (select(.uri | test("/update/") |not ) | .), (select(.uri |test($LATEST)) | . ) | .uri |= sub($LATEST;"/update/latest/") ]'  ../tmp/index.json > index.json
+
+
+if [ ${GIT} -eq "1" ]; then
+	# Add changes to git.
+	message "git add"
+	git add .
+
+	# Commit changes.
+	msg="rebuilding site $(date)"
+	if [ -n "$*" ]; then
+		msg="$*"
+	fi
+	git commit -m "$msg"
+
+	# Push source and build repos.
+	message "Pushing update to GitHub"
+	git push
+fi

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+pushd content || { echo "no content/ dir found"; exit 1; }
+
+echo "Clearing failed pages from content/"
+echo "Press CTRL+C to cancel"
+sleep 3
+echo "deleting failed pages ------"
+find . -name _index.md -size -100c -print -delete 
+
+echo "removing empty dirs --------"
+find . -type d -empty -print -delete
+

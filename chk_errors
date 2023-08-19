@@ -1,0 +1,43 @@
+#!/bin/bash
+
+help() {
+
+	echo "Usage: $(basename $0) [-vh]"
+	echo -e "\t-h\tDisplay help"
+	echo -e "\t-v\tVerbose mode"
+
+}
+
+VERBOSE=0
+
+echo "Checking errors -----------------" > /dev/stderr
+
+while getopts 'vh' option
+do
+    case "$option" in
+    h)
+        help
+	exit 0
+         ;;
+    v)
+         VERBOSE=1
+         ;;
+    *)
+        echo "Invalid argument given"
+        help
+        exit 1
+        return
+        ;;
+    esac
+done
+
+GREP_ARGS="-l"
+if [ $VERBOSE -eq 1 ]; then
+	GREP_ARGS=""
+fi
+
+find ./content -type f -name '*.md'  | sort | xargs  fgrep ${GREP_ARGS} -e Error -e Warning  
+
+echo "Find missing files --------------" > /dev/stderr
+find ./content  -type d  |grep -v /figure | sort | xargs -i  sh -c 'test -s "{}/_index.md" || echo "{}/_index.md: is missing"'
+

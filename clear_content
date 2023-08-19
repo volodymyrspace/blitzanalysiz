@@ -1,0 +1,7 @@
+#!/bin/sh
+if [ -d "content" ]; then
+	rm -Rf content/*
+    echo "Dir 'content' emptied"
+else
+    echo "No directory 'content'"
+fi
