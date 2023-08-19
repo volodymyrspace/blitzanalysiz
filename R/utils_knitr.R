@@ -33,8 +33,9 @@ rebuild_needed <- function(file1, file2) {
 require_rebuild <- function(r_script,
                             target,
                             force = FALSE,
-                            update.curr = NULL) {
-    r_script <- get_script_path(r_script, 2)
+                            update.curr = NULL,
+                            build_ver = build.version) {
+    r_script <- get_script_path(r_script, build_ver)
     target <- filename_target(target)
     stats_filename <- ds_filename_update(update.curr)
 
