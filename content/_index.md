@@ -1,5 +1,6 @@
 ---
-title: BlitzAnalysiz[] 
+archetype: "home"
+title: BlitzAnalysiz[]
 menutitle: Home
 date: 2023-08-17
 author: Jylpah@gmail.com
@@ -9,8 +10,6 @@ weight: 1
 alwaysopen: true
 description: "Stats analysis of World of Tanks Blitz mobile tank game"
 ---
-
-# BlitzAnalysiz[] 
 
 Welcome to BitzAnalysiz[], a site about **in-depth analysis of 
 [World of Tanks Blitz](https://wotblitz.com) game statistics**. You should be automatically taken to 
@@ -23,7 +22,7 @@ Welcome to BitzAnalysiz[], a site about **in-depth analysis of
 ```
 ## Other great WoT Blitz sites
 
-* The Official [WoT Blitz](https://wotblitz.eu) game site by Wargaming
+* The Official [WoT Blitz](https://wotblitz.com) game site by Wargaming
 * [BlitzStars](https://blitzstars.com) - Player statistics 
 * [BlitzStars Tank Compare](https://tank-compare.blitzstars.com/) - Tank comparison tool 
 * [Blitz Hangar](https://blitzhangar.com/) - Tank knowledge base
