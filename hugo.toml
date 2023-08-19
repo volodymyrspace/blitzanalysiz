@@ -9,6 +9,7 @@ googleAnalytics = "G-YB9LFTYQCG"
 summaryLength = 30
 ignoreFiles = ["\\.Rmd$", "\\.Rmarkdown$", "\\.rda$", "_files$", "_cache$", "^.git"]
 relativeURLs = true
+enableInlineShortcodes = true
 
 # For search functionality
 [outputs]
@@ -115,6 +116,7 @@ tag = "tags"
 [server]
 [[server.headers]]
 for = '*.svgz'
+
 [server.headers.values]
 Content-Encoding = 'gzip'
 Vary = 'Accept-Encoding'
