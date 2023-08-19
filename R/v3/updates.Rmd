@@ -1,0 +1,22 @@
+---
+title: "Blitz Updates" 
+menutitle: "Stats"
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+output: md_document
+weight: 2
+disableToc: false
+alwaysopen: false
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = "svglite", fig.ext = "svgz")
+preliminary <- is_preliminary(update.latest)
+```
+
+{{% children showhidden="true" description=false %}} 
+
+{{% notice note %}}
+The statistics are being updated at the end of every update so those lag behind one update. 
+{{% /notice %}}
+
+

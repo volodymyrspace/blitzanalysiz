@@ -1,0 +1,296 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, dev = "svglite", fig.ext = "svgz")
+update.latest <- get_latest_update()
+```
+---
+title: Changelog
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+output: md_document
+weight: 11
+disableToc: false
+alwaysopen: true
+---
+
+#### 2023-03-25
+
+* Fix missing Chinese Light tanks (`r md_link_tank(tank_names='WZ-132-1', update=NULL)`)
+* Fix misc bugs in calculations impacting `r md_link_update(update="9.6")` stats too
+
+#### 2023-03-22
+
+* Added stats for `r md_link_update(update="9.7")`. 
+* The site tracks now nearly every active Blitz player. About 2M players play Blitz during 
+  an update across all the servers. The impact can be seen in 
+	`r md_link_update_players(update="9.7", link_text="overall WR distribution", rel_link="#player-wr-distribution")` 
+	that shows mean WR being below 50% as it should. The impact on tank stats is 
+	minimal since the missing players were mostly inactive players. Large share of players play too 
+	few games during an update to really impact on the tank stats.  
+
+#### 2023-02-28
+
+* Added stats for `r md_link_update(update="9.6")`.
+* A MAJOR upgrade to the site's "backend" responsible for fetching and managing the stats, 
+  exporting those to R. The new backend is based on:
+  * [Pydantic](https://docs.pydantic.dev/) for data validation
+  * Python [multiprocessing](https://docs.python.org/3/library/multiprocessing.html) for performance
+  * [Apache Arrow](https://arrow.apache.org/) for larger-than-memory data support. The build pipeline can now automatically read only part of the data to the memory for processing. This scales to at least 10x data amounts vs. the previous pipeline.	
+* The site tracks now nearly **every Blitz player**. Results of this will be seen in the next update's data. 
+* The 9.6 stats were published late due to large changes required to refactor the build pipeline 
+  for the new backend & file format, ... and due to myself making a tiny-tiny 
+  copy-paste error which that cost me approx. 20h of work to recover from...
+
+#### 2023-01-12
+
+* Added stats for `r md_link_update(update="9.5")`.
+
+#### 2023-01-08
+
+* Under-the-hood upgrade. Charts are now [compressed SVG images aka SVGZ images](https://en.wikipedia.org/wiki/SVG#Compression). 
+A seemingly simple task turned out to be a major debugging-retrying project since 
+GitHub Pages server transparently compresses images without adding adequate HTTP Response headers. 
+[Browsers also have varying support for more exotic HTTP headers](https://github.com/Jylpah/svgztest#readme) 
+(iOS Safari ¤#@!). Finally it works and as a side-benefit [BlitzAnalysiz.com](https://blitzanalysiz.com) 
+is now served through [CloudFlare](https://cloudflare.com) CDN and it absolutely ROCKS! 
+
+
+#### 2023-01-04
+
+* Major update. New simplified page hierarchy. I scrapped the update-level 
+"tier" hierarchy and created `r md_link_players()` page and 
+`r md_link_tier(tier=10, rel_link='players/', link_text="players at tier")` 
+pages instead. I thougt this would have been a "small" thing, but it took days 
+to fix all the broken hard-coded links (and update those to generated ones). 
+
+#### 2022-12-19
+
+* Added stats for `r md_link_update(update="9.4")`.
+
+#### 2022-11-11
+
+* Added stats for `r md_link_update(update="9.3")`.
+
+#### 2022-10-08
+
+* Added stats for `r md_link_update(update="9.2")`.
+
+#### 2022-08-25
+
+* Added stats for `r md_link_update(update="9.1")`.
+
+
+#### 2022-06-09
+
+* Added stats for `r md_link_update(update="8.10")`.
+
+
+#### 2022-05-05
+
+* Added stats for `r md_link_update(update="8.9")`.
+
+
+#### 2022-04-24
+
+* Added stats for `r md_link_update(update="8.8")`.
+
+
+#### 2022-02-17
+
+* Added stats for `r md_link_update(update="8.7")`.
+
+#### 2022-01-22
+
+* Added stats for `r md_link_update(update="8.6")`.
+
+#### 2022-12-21
+
+* Added stats for `r md_link_update(update="8.5")`.
+
+#### 2021-11-19
+
+* Added stats for `r md_link_update(update="8.4")`.
+
+#### 2021-10-24
+
+* Added stats for `r md_link_update(update="8.3")`.
+
+#### 2021-09-18
+
+* Added final stats for `r md_link_update(update="8.2")`.
+
+#### 2021-08-22
+
+* Added final stats for `r md_link_update(update="8.1")`.
+* Fixed lot of build system bugs and built workarounds for out-of-RAM cases. 32GB RAM is running short with the amount of data...
+
+
+#### 2021-07-21
+
+* Added bottom 20 Relative WR per player skill-level charts to `r md_link_tier(update=NULL, tier=10)`.
+* Added clarification of what "WR" is on player skill-level charts (=player WR at the tier in question).
+
+#### 2021-07-17
+
+* Added final stats for `r md_link_update(update="8.0")`.
+* Added Relative WR stats for 55-65% and +65% player segments separately
+
+#### 2021-06-11
+
+* Added final stats for `r md_link_update(update="7.9")`.
+
+#### 2021-05-02
+
+* Added final stats for `r md_link_update(update="7.8")`.
+
+#### 2021-05-02
+
+* Added preliminary stats for `r md_link_update(update="7.7")`.
+
+#### 2021-03-26
+
+* Added preliminary stats for `r md_link_update(update="7.7")`.
+
+#### 2021-02-14
+
+* Added preliminary stats for `r md_link_update(update="7.6")`.
+
+#### 2021-02-01
+
+* Added relative WR stats by skill-level for [tank type](/update/latest/10/medium-tanks/#relative-wr-by-player-skill-level) 
+and [premium tank pages](/update/latest/10/premium-tanks/#relative-wr-by-player-skill-level).
+
+#### 2021-01-31
+
+* Added final stats for `r md_link_update(update="7.5")`.
+* New [Relative WR by player skill-level](/update/latest/#relative-wr-by-player-skill-level) (WR at tier) added. 
+* New code to manage larger stats not fitting into RAM (32GB).
+
+#### 2020-12-26
+
+* Added preliminary stats for `r md_link_update(update="7.5")`.
+* Added links to tank-pages into stats tables
+
+#### 2020-12-11
+
+* Added final stats for `r md_link_update(update="7.4")`.
+
+#### 2020-12-03
+
+* New [Blog article about the most OP tanks of all time](/blog/2020-12-03_the_most_op_tanks_ever/). 
+
+
+#### 2020-11-27
+
+* Added _preliminary_ stats for `r md_link_update(update="7.4")`. I have develop scripts to clean up 
+the database so I can in the future release preliminary stats before the next update. 
+
+#### 2020-11-13
+
+* Added _full_ stats for `r md_link_update(update="7.3")`. Just after I was proud to release preliminary 
+stats for the first time, WG announced a new update. So the preliminary stats were served total _three_ days. 
+In the future I plan to release preliminary stats 2 weeks after an update. 
+
+
+#### 2020-11-10
+
+* Added _preliminary_ stats for `r md_link_update(update="7.3")`. I have develop scripts to clean up the 
+database so I can in the future release preliminary stats before the next update. 
+* New [blog article about MM Rigging (in Mad/Burning Games)](/blog/2020-11-10_rigged_mad_games_mm).
+
+#### 2020-10-10
+
+* Stats for `r md_link_update(update="7.2")` are out. I finally managed to fix the parallel processing 
+error (it was multi-threading, not shared memory issue). Debugging parallel code is **PIA**.
+
+#### 2020-08-27
+
+* Stats for `r md_link_update(update="7.1")` are finally out. After adding the tank-pages the site build 
+time has grown 10x and I have been looking for parallel processing to speed up the work. But I have ran 
+into weird issues likely related to shared memory limits causing the parallel build script to fail. 
+
+#### 2020-08-16
+
+* Added pages for [premium tanks](/update/latest/8/premium-tanks/) per tier (V-X).
+* Added tank listing in the beginning of the [tank type pages](/update/latest/10/medium-tanks/). 
+
+#### 2020-08-14
+
+* New [tank-specific pages](/update/latest/10/tanks/`r get_tank_id('E 100')`) with lot of detailed 
+information about each tank in comparison to the same tier/type tanks. 
+* [Hit Rate](/update/latest/10/#highest-hit-rate) and [average kills](/update/latest/10/#highest-average-killsbattle) 
+charts added to Tanks, Tanks per tier, Tanks of Type and Tank.
+
+#### 2020-08-08
+
+* Histograms are now pretty & colored and have mean/median values. 
+* [Career stats](/update/latest/career) are now calculated based on true career stats 
+including players who did not play and tanks that were not played during the update.
+* New graphs: 
+  * [WR vs. battles played](/update/latest/#wr-vs-battles-played) during the upgrade
+  * [Current WR vs. Career Battles](/update/latest/career/#current-wr-vs-career-battles-played). I think this is what you asked, Mjr_Eazy@EU ;-)
+  * [Career WR vs. Career Battles](/update/latest/career/#career-wr-vs-career-battles-played). This one is a bonus. 
+  * [Most popular tanks](/update/latest/career/#most-popular-tanks-by-players) through the history of the game.
+  * [Most played tanks](/update/latest/career/#most-popular-tanks-by-battles) through the history of the game.
+  * [Most popular nations by Region/Server](/update/latest/region/#popularity-of-tank-nations)
+* New fancy parallel build system that cut down the built time 70%. It took insane amount of debugging. 
+* Reworking the code the create reasonable axis breaks and labels. This little "fix" took _lot_ of time, enjoy :-D
+* Updated [home page](/) layout.
+* Images are now in [SVG format](https://en.wikipedia.org/wiki/Scalable_Vector_Graphics) instead of PNG. 
+In case there are browser compatibility issues, [please let me know](mailto:Jylpah@gmail.com).
+
+#### 2020-07-22
+
+* [Career stats](/update/latest/career/) have been updated and calculated by _all_ the cumulative stats in the database, 
+not just stats from players who played during the update. The build system is 3x slower again thanks to far larger data set.  
+* Added [graphs for Career/current WR vs. battles played](/update/latest/career/#career-wr-vs-career-battles-played). 
+
+#### 2020-07-18 
+
+* New parallel building setup. 3x faster than before. 
+* Image format changed from PNG to SVG. Yes the font is dead-ugly, will update it later
+* New graphs: [Player current WR vs. Career battles played](/update/latest/career/#current-wr-vs-career-battles-played) 
+and [Player career WR vs. Career battles played](/update/latest/career/)
+
+#### 2020-07-16 
+
+* Stats added for `r md_link_update(update="7.0")`. 
+* New pages for each [tank type per tier](/update/latest/10/heavy-tanks) have been added. These pages list 
+all the tanks in the tier for each tank type. 
+
+#### 2020-06-17 
+
+* Stats added for update 6.10
+* Also fixed a bug in the code (function params in wrong order..) that likely caused too many tank 
+stats being filtered out. 
+
+#### 2020-06-08 
+
+* Blog post about [measuring tank performance](/blog/2020-06-08_measuring_tank_performance/)
+* Changes to stats filtering and Relative WR algo
+
+Stats filtering unified to eliminate stock-grind tanks' impact on tank performance stats (Averate WR, 
+Relative WR, Average damage, etc.). Earlier new tanks got impacted by the stock-grind battles being 
+taken into account. The number of required battle is a compromise based on average tank research 
+XP divided by players' average XP at the tier **and** divided by 1.5^2. This can be intepreted as 
+playing with 50% WR and only the first 2x XP victories plus XP boosters. Making the filter too 
+aggressive seriously limits the available data, therefore the compromise. 
+
+**Required number of battles per tier**
+
+`r kable(t(min_battles.grinds))`
+
+Relative WR formula revised to do the comparison to average of all the same tier tanks, including
+ the tank itself. This seems to provide more sensible results than the earlier using _other_ same 
+ tier tanks as the comparison point. Honestly speaking, I do not know why. The first algorithm seemed clever, but the detailed graphs showed it failed somehow.
+
+The first Relative WR incarnation also had an error that while it filtered out stock-grind tanks, 
+it included those in the calculation of the comparison WR (i.e. average WR of other same tier tanks). 
+This caused RElative WR to be higher for all the tanks than it actually was.   
+
+#### [2020-06-08 New blog post: Measuring tank performance](/blog/2020-06-08_measuring_tank_performance/)
+
+#### [2020-05-16 Stats since update 6.0 added](/blog/2020-05-16_stats_since_6.0_added/)
+
+Stats since Update 6.0 added. Graphs are also now based on plot templates to unify look'n' feel.
+
+#### [2020-05-07 BlitzAnalysiz.com launched](/blog/2020-05-07_blitzanalysiz_launched/)

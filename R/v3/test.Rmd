@@ -1,0 +1,47 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150,echo = FALSE, error = TRUE, dev = 'svglite', fig.ext = 'svgz');
+stopifnot(exists('target_page'))
+update = get_latest_update()
+tank_id = get_path_elem_int(target_page,3)
+tier = get_path_elem_int(target_page,4)
+tierN = tier
+tier.roman <- get_tier_roman(tier)
+tank_ID = tank_id
+tank_name = get_tank_name(tank_id)
+tank_type = get_tank_type(tank_id)
+tank_nation = get_tank_nation(tank_id)
+tank_nation.str = Nations.str[[as.integer(tank_nation)]]
+stats.tier <- get_stats.update.tier(tierN)
+stats.update.tank <- get_stats_tank(tank_ID)
+```
+
+---
+title: "`r get_tank_name(tank_id)`"
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+tags: [ "`r update`", "Tier `r tier.roman`", "Tanks/Tier", "`r tank_type`", "`r get_tank_name(tank_id)`" ]
+alwaysopen: false
+hidden: true
+autohide: false
+---
+
+```{r fig_tank_WR_vs_avg_dmg_kills}
+x_name = 'Average Damage'
+y_name = 'Kills/Battle'
+z_name = 'WR'
+res <- stats.update.tank[ ,
+              .('Average Damage' = avg_dmg, 
+                'Kills/Battle' = avg_kills, 
+                'WR' = WR, 
+                'Battles' = all.battles)]
+
+title <- get_plot_title_tank_z_is_xy(tank_name, z_name, x_name, y_name)
+
+plot_contour_discrete.test(res, title, update, 
+                     x_name, y_name, z_name, weights = 'Battles', 
+                     col.palette = palette.WN8, col.levels = buckets.WR, tier = tier)
+
+```
+

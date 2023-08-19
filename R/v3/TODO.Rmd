@@ -1,0 +1,29 @@
+---
+title: TODO
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: 12
+alwaysopen: false
+hidden: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, dev = 'svglite', fig.ext = 'svgz');
+```
+
+This is a non-comprehensive list of things I plan to work on when I have time. 
+
+
+* **[Stratified sampling](https://en.wikipedia.org/wiki/Stratified_sampling)** for Relative 
+WR analysis to further eliminate the impact of different player populations to measure.
+
+* Analysis of **historical data** from early releases. For veteran tank nerds only.  
+
+* **Interactive charts**. The site is based on 100% static content: HTML & JavaScript 
+files and PNG images. I need to investigate if I could use Javascript-based interactive 
+chart-library such as [chart.js](https://www.chartjs.org/) at the site. This will be a _major_ overhaul. 
+
+
+
