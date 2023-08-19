@@ -78,5 +78,5 @@ R/config.R
 *.vsix
 
 # Hugo
-.hugo_build.lock
+# .hugo_build.lock
 *.mod
