@@ -61,6 +61,7 @@ R/config.R
 # temp
 /tmp/*
 !/tmp/.gitkeep
+*.swp
 
 # VS Code
 .vscode/*
@@ -78,3 +79,4 @@ R/config.R
 
 # Hugo
 .hugo_build.lock
+*.mod
