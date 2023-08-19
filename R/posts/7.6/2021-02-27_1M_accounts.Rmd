@@ -1,0 +1,157 @@
+---
+title: "1 Million players"
+linktitle: "2021-02-27 1 Million players"
+date: `r today("UTC")`
+publishdate: 2021-02-27
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: page_weight
+alwaysopen: false
+hidden: true
+tags: [ "post", "7.6" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = c("svglite", "png"))
+# Load stats
+update_ver <- "7.6"
+NOW <- as.integer(as.POSIXct("2021-02-25")) # 7.6 Stats fetched on Feb 24, 2021
+
+# Get last_battle_time & all.battles per tank per account
+
+res <- qread(filename_data("summary_tank_stats_0.9-7.6.qs"))
+
+stats <- res[, head(.SD, 1), by = .(account_id, tank_id)]
+first_battle_times <- res[, .(first_battle_time = min(last_battle_time)),
+  by = .(account_id, tank_id)
+]
+
+rm(res)
+gc(verbose = FALSE)
+
+setkey(stats, account_id, tank_id)
+setkey(first_battle_times, account_id, tank_id)
+
+stats <- merge(stats, first_battle_times,
+  by = c("account_id", "tank_id"), all.x = TRUE
+)
+stats[, WR := all.wins / all.battles]
+stats[, WR.career := sum(all.wins) / sum(all.battles), by = account_id]
+
+stats <- na.omit(stats)
+
+accounts <- stats[, .(
+  WR.career = first(WR.career), battles = sum(all.battles),
+  tanks = .N, career_time = max(last_battle_time) - min(first_battle_time),
+  last_battle_time = max(last_battle_time),
+  first_battle_time = min(first_battle_time)
+),
+by = account_id
+]
+```
+
+BlitzAnalysiz[] recently reach an impressive milestone: the site's database tracks 
+now over **1 million players**! That's is a big number so let's have a look on 
+the player base. 
+
+## Career WR
+
+The chart below shows player's career WR over those 1M players. The career WR distribution seems 
+*almost* normal distribution, but only almost. The right-hand side "tail" is reaching further 
+from the mean vs. the left-hand side and the mean WR is above 50%. This seems impossible. 
+This is likely related to the sampling of the players, since more active players 
+are more likely to end up in the the database. Many players (38%) have given up the 
+game or at least have not played in 2021. It seems the the success of the player 
+does not influence on the decision to give up on the game - at least among those 
+who have ended into the database.    
+
+```{r fig_career_wr}
+cut_off <- as.integer(as.POSIXct("2021-01-01"))
+
+res <- stats[, .(
+  "WR" = first(WR.career),
+  "Player" = factor(max(last_battle_time) > cut_off,
+    levels = c(TRUE, FALSE), labels = c("Active", "Inactive")
+  )
+),
+by = account_id
+]
+
+plot_histogram_continuous(res, "Career WR", NULL, "WR", "Players",
+  fill_var = "Player", fill_elems = c("Active", "Inactive"),
+  avg_name = "Total",
+  y_pct = TRUE, x_pct = TRUE, bin_breaks = seq(.2, .8, .01),
+  x_lims = c(.2, .8), x_breaks = seq(.2, .8, .05),
+  x_signif = 3,
+  stacked = TRUE, median = FALSE,
+  palette.fill = palette.graphs[c(7, 8)],
+  palette.annotate = palette.lines[c(7, 8)]
+)
+```
+
+### Career WR table
+
+This table shows the career WR of the players as [quantiles](https://en.wikipedia.org/wiki/Quantile). 
+
+{{% expand "Show table" %}}
+
+```{r career_battle_count_summary, echo = FALSE}
+md_table_quantiles(res[, WR], "WR", c(seq(0, 0.04, 0.01), seq(0.05, 0.9, .05), seq(0.95, 1, .01)))
+```
+
+{{% /expand %}}
+
+## Length of the Blitz Career
+
+The next chart looks how long the players have been playing Blitz so far. The mean 
+is 2.7 years and the chart is surprisingly flat. 
+
+```{r fig_career_length}
+plot_histogram_continuous(accounts[, .(Years = career_time / 3600 / 24 / 365)],
+  "Blitz Career length", NULL, "Years", "Players",
+  y_pct = TRUE, x_pct = FALSE, bins = 70, x_breaks = seq(0, 7)
+)
+```
+
+## Career start 
+
+The following chart shows when did the players start playing Blitz. 
+**However**, this does not give true picture since the database has 
+been collected only since update 5.3 (2018 September). I do have earlier 
+data sets, but I have not had time to integrate those in the main database 
+for the enjoyment for those handful hard-core Blitz stats nerds. Some day 
+I will. Also strictly speaking it shows the oldest last battle time across the 
+players' tanks. The chart therefore tells how long the players have at least played. 
+
+```{r fig_career_start}
+bin_breaks <- as.integer(as.POSIXct(seq(as.Date("2014-01-01"), by = "month", length.out = 9 * 12)))
+x_labels <- seq(as.Date("2014-01-01"), by = "year", length.out = 9)
+x_breaks <- as.integer(as.POSIXct(x_labels))
+x_labels <- year(x_labels)
+plot_histogram_continuous(accounts[, .("Year" = first_battle_time)],
+  "Players by start of their Blitz Career", NULL, "Year", "Players",
+  y_pct = TRUE, x_pct = FALSE, bin_breaks = bin_breaks, x_breaks = x_breaks,
+  x_labels = x_labels, mean = FALSE, median = FALSE
+)
+```
+
+## Latest battle
+
+The chart shows when did the players tracked by the site play the last time. Only 
+50% of the tracked players have played in current month (Feb 2021). The slope of the 
+chart does not indicate the the exodus from the game increasing since also the site 
+has constantly increased the number of players being tracked. But it shows that there 
+is a large player base who do not play Blitz even every month. 
+
+```{r fig_career_end}
+bin_breaks <- as.integer(as.POSIXct(seq(as.Date("2018-01-01"), by = "month", length.out = 9 * 12)))
+x_labels <- seq(as.Date("2018-01-01"), by = "year", length.out = 9)
+x_breaks <- as.integer(as.POSIXct(x_labels))
+x_labels <- year(x_labels)
+plot_histogram_continuous(accounts[, .("Year" = last_battle_time)],
+  "Players by their latest battle", NULL, "Year", "Players",
+  y_pct = TRUE, x_pct = FALSE, bin_breaks = bin_breaks, x_breaks = x_breaks,
+  x_labels = x_labels, mean = FALSE, median = FALSE
+)
+```

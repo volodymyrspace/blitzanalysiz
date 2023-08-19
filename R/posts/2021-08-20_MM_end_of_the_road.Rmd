@@ -1,0 +1,252 @@
+---
+title: "Post title"
+linktitle: "2020-06-17 Post LINK title"
+date: `r today("UTC")`
+publishdate: 2020-XX-YY
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: page_weight
+alwaysopen: false
+hidden: true
+tags: [ "post" ]
+---
+## TODO
+
+* histogram plot
+* Changes in std deviation
+* Estimated WR comparison
+* Player skill model
+* Player skill at X -> results on different tiers AND other way round
+* Skill-estimate based on distribution changes
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = c("svglite", "png"))
+periods <- list(
+  "7.6-8.0" = list("7.6", "8.0"),
+  "6.6-7.0" = list("6.6", "7.0"),
+  "5.6-6.0" = list("5.6", "6.0")
+)
+tierN <- 10
+parts <- 5 # RAM optimization
+
+stats.cum <- list()
+stats.period_totals <- list()
+stats.period <- list()
+
+# generate period stats if not exists
+for (prd in names(periods)) {
+  tmp <- periods[[prd]]
+  update.start <- tmp[[1]]
+  update.end <- tmp[[2]]
+  gen_tank_stats_period(update.start, update.end, verbose = FALSE)
+}
+# load data
+for (prd in names(periods)) {
+  tmp <- periods[[prd]]
+  update.start <- tmp[[1]]
+  update.end <- tmp[[2]]
+
+  stats.period[[prd]] <- load_tank_stats_period(update.start, update.end)
+  stats.period[[prd]] <- run_parts(stats.period[[prd]], func = function(x) {
+    return(subset(x, tier == tierN))
+  })
+  stats.period[[prd]] <- run_parts(stats.period[[prd]], func = function(x) {
+    x[, "period" := as.factor(prd)]
+  })
+}
+
+stats.period <- run_parts(stats.period, function(x) {
+  return(rbindlist(x, use.names = TRUE, fill = TRUE))
+})
+stats.period.all <- rbindlist(stats.period, use.names = TRUE, fill = TRUE)
+```
+
+```{r params}
+# color palette
+palette.fill <- palette.vehicle_class[c(1, 2, 8)]
+palette.annotate <- palette.vehicle_class.lines[c(1, 2, 8)]
+names(palette.fill) <- names(periods)
+names(palette.annotate) <- names(periods)
+min.battles <- 30
+```
+
+```{r eval=FALSE}
+## Analysis
+## all players
+# buckets.battles <- run_parts(stats.period,
+#                              function(DT) { return(DT[, .(Battles = sum(all.battles)),
+#                                                       by=.(WR=cut(WR.tier.all,
+#                                                                   breaks=buckets.WR,
+#                                                                   include.lowest=TRUE))][order(WR)]) })
+
+## more than 30 battles at tier X
+buckets.battles <- run_parts(
+  stats.period,
+  function(DT) {
+    return(DT[battles.tier.all > min.battles,
+      .(
+        Battles = sum(all.battles),
+        Players = uniqueN(account_id)
+      ),
+      by = .(WR = cut(WR.tier.all,
+        breaks = buckets.WR,
+        include.lowest = TRUE
+      ))
+    ][order(WR)])
+  }
+)
+run_parts(
+  buckets.battles,
+  function(DT) {
+    battles.total <- DT[, sum(Battles)]
+    players.total <- DT[, sum(Players)]
+    DT[, c("% Battles", "% Players") := .(Battles / battles.total, Players / players.total)]
+  }
+)
+
+
+run_parts(
+  buckets.battles,
+  function(DT) {
+    DT[, .(WR,
+      Players,
+      "% Players" = percent_format(`% Players`),
+      Battles,
+      "% Battles" = percent_format(`% Battles`)
+    )]
+  }
+)
+
+# run_parts(buckets.battles, function(DT) { DT[seq(1,3), percent_format(sum(`% Battles`))]})
+# run_parts(buckets.battles, function(DT) { DT[seq(8,10), percent_format(sum(`% Battles`))]})
+```
+## Main battle queue
+
+Players outside EU and RU servers' "sub-5k" queue. 
+
+```{r fig_WR_histogram_players, eval=FALSE}
+min.battles <- 0
+res <- stats.period.all[DT_filter_sub5k.out(stats.period.all),
+  .(
+    "WR at Tier X" = sum(all.wins) / sum(all.battles),
+    "Players" = .N,
+    "Battles" = sum(all.battles)
+  ),
+  by = .("Player" = account_id, "Period" = period)
+]
+
+title <- "Players' Tier X WR"
+perf_measure <- "Players"
+by_measure <- "WR at Tier X"
+
+plot_average_Y(res, title, NULL, by_measure, perf_measure,
+  fill_var = "Period", fill_elems = names(periods), avg_name = NULL,
+  bin_breaks = buckets.WR, y_mode = "share",
+  x_pct = TRUE, y_pct = TRUE,
+  palette.fill = palette.fill,
+  palette.annotate = palette.annotate,
+  mean = FALSE
+)
+```
+
+
+```{r fig_WR_histogram_battles}
+min.battles <- 0
+res <- stats.period.all[all.battles >= min.battles,
+  .(
+    "WR at Tier X" = sum(all.wins) / sum(all.battles),
+    "Battles" = sum(all.battles)
+  ),
+  by = .("Player" = account_id, "Period" = period)
+]
+
+title <- "Battles by Player Tier X WR"
+perf_measure <- "Battles"
+by_measure <- "WR at Tier X"
+
+plot_average_Y(res, title, NULL, by_measure, perf_measure,
+  fill_var = "Period", fill_elems = names(periods), avg_name = NULL,
+  bin_breaks = buckets.WR, y_mode = "share",
+  x_pct = TRUE, y_pct = TRUE,
+  palette.fill = palette.fill,
+  palette.annotate = palette.annotate,
+  mean = FALSE
+)
+```
+
+### Table
+
+{{% expand "Show table" %}}
+
+```{r WR_battles, echo = FALSE}
+for (prd in names(periods)) {
+  res.table <- res[Period == prd, .(
+    Battles = sum(Battles),
+    Players = uniqueN(Player)
+  ),
+  by = .(WR = cut(`WR at Tier X`,
+    breaks = buckets.WR,
+    labels = percent_range_format(buckets.WR),
+    include.lowest = TRUE
+  ))
+  ][order(WR)]
+
+  res.battles.total <- as.integer(res.table[, .(battles.total = sum(Battles))])
+  res.players.total <- as.integer(res.table[, .(players.total = sum(Players))])
+
+  res.table[, c("% Battles", "% Players") := .(Battles / res.battles.total, Players / res.players.total)]
+
+  ## FIX for every period separately
+  cat(paste("\n## Updates", prd, "\n\n"))
+  cat(md_table(res.table, NULL, cols.no_format = "WR"), sep = "\n")
+}
+```
+{{% /expand %}}
+
+
+
+## Battles per player skill
+
+```{r fig_WR_battles}
+prd <- 1
+min.battles <- 0
+colors.sel <- c(1, 8) # from palette.fill
+title <- "Player career battles by current Tier X WR"
+perf_measure <- "Career Battles"
+by_measure <- "WR at Tier X"
+
+battle.measures <- c("X", "I-X")
+
+res <- stats.period[[prd]][DT_filter_sub5k.out(stats.period[[prd]]),
+  .(
+    "WR at Tier X" = first(WR.tier.all),
+    "X" = sum(all.battles.new),
+    "I-X" = first(battles.career)
+  ),
+  by = .("Player" = account_id, "Period" = period)
+]
+
+res <- melt.data.table(res,
+  id.vars = c("Period", "Player", by_measure),
+  variable.name = "Tier",
+  measure.vars = battle.measures,
+  value.name = perf_measure
+)
+
+plot_quantile_Y(res, title,
+  update = NULL, by_measure, perf_measure,
+  fill_var = "Tier", fill_elems = battle.measures,
+  bin_breaks = buckets.WR, x_pct = TRUE, y_pct = FALSE,
+  palette.fill = palette.graphs[colors.sel],
+  palette.annotate = palette.annotate[colors.sel],
+  avg_name = NULL, subtitle = paste("Updates", names(periods)[[prd]])
+)
+```
+
+
+```{r playertank_factors}
+stats <- stats.period[[1]]
+dat <- prep_tank_player_perf(stats[DT_filter_tank_is_maxed(stats)])
+```

@@ -1,0 +1,33 @@
+---
+title: "MathJax test"
+linktitle: "2021-09-11 MathJax test"
+date: `r today("UTC")`
+publishdate: 2020-XX-YY
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: page_weight
+alwaysopen: false
+hidden: true
+tags: [ "post" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = c('svglite', 'png'));
+```
+
+
+## Block MathJax
+
+### Without <div>
+
+$$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
+### with <div>
+
+<div>
+$$x = {-b \pm \sqrt{b^2-4ac} \over 2a}.$$
+</div>
+
+## Inline
+
+testing inline  math \\(x = {-b \pm \sqrt{b^2-4ac} \over 2a}.\\) this does work!!

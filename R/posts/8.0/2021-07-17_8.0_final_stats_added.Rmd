@@ -1,0 +1,109 @@
+---
+title: "Update 8.0 final stats added "
+linktitle: "2021-07-17 Update 8.0 final stats added"
+date: `r today("UTC")`
+publishdate: 2021-07-17
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "post", "8.0" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = 'svglite', fig.ext = 'svgz');
+update_ver = '8.0'
+stopifnot(all(exists("stats.update"), update_ver == update))
+res <- stats.update[, .(Battles=sum(all.battles), Players=uniqueN(account_id))]
+stats.update.perf <- get_stats_tank_perf.rWR(stats.update)
+```
+
+Final stats for `r md_link_update(update=update_ver)` have been added. 
+
+* In total, there were 152M battles by 477k players recorded in the database during 
+the `r md_link_update(update=update_ver)`.
+
+* Not much changes in the best performing tanks:
+
+```{r fig_tanks_top_RelativeWR}
+plot_relativeWR(stats = stats.update.perf, update = update_ver);
+```
+
+### New American heavies
+
+The American experimental heavy tank line leading to 
+`r md_link_tank(tank_names='M-VI-Yoh', update=update_ver)` was introduced 
+in `r md_link_update(update="8.0")`: 
+
+####  Tier VII - M-III-Yoh
+
+The `r md_link_tier(update=update_ver, tier=7)` 
+`r md_link_tank(tank_names='M-VII-Yoh', update=update_ver)` felt a good tank, 
+but it seems to have performed pretty poorly on average. 
+
+```{r fig_tanks_tier7_heavy_RelativeWR}
+tank_type  	<- 'Heavy Tank'
+tierN 			<- 7
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
+```
+
+
+####  Tier VIII - M-III-Yoh
+
+The `r md_link_tier(update=update_ver, tier=8)` `r md_link_tank(tank_names='M-III-Yoh', update=update_ver)` 
+was introduced as a very balanced tank. In other words it is performing below-average for a heavy tank. 
+I found the tank pretty decent. 
+
+```{r fig_tanks_tier8_heavy_RelativeWR}
+tank_type  	<- 'Heavy Tank'
+tierN 			<- 8
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
+```
+
+#### Tier IX - M-V-Yoh
+
+The `r md_link_tier(update=update_ver, tier=9)` `r md_link_tank(tank_names='M-V-Yoh', update=update_ver)` 
+was not so fun tank to play due to its enormous reload time. It performed bit below average. 
+
+```{r fig_tanks_tier9_heavy_RelativeWR}
+tank_type  	<- 'Heavy Tank'
+tierN 			<- 9
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
+```
+
+#### Tier X - M-VI-Yoh
+
+The `r md_link_tier(update=update_ver, tier=10)` `r md_link_tank(tank_names='M-VI-Yoh', update=update_ver)` 
+continues the pattern and performed below average. I liked the tank, but I have 
+been fairing pretty poorly with it. I like the dual-shot gun more due to its 
+unique characteristics, but the three-shot autoloader has far better DPM and 
+seems to perform better. WG could give the dual-shot gun bit shorter magazine 
+reload to make it more competitive. There is already 
+`r md_link_tank(tank_names='T57 Heavy Tank', update=update_ver)` so playing the 
+three-shot gun feels bit "meh" (IMO) - even it performs better.
+
+```{r fig_tanks_tier10_heavy_RelativeWR}
+tank_type  	<- 'Heavy Tank'
+tierN 			<- 10
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
+```
+
+If you have seen the `r md_link_tank(tank_names='M-VI-Yoh', update=update_ver)` 
+performing well on the battlefield, it is probably since it has been driven by 
+better than average players:
+
+```{r fig_player_base_M_VI_Yoh}
+tank_id     <- get_tank_id('M-VI-Yoh')
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_player_base(stats = stats, tank_id = tank_id, 
+                      title.avg = paste('Tier', get_tier_roman(tierN), tank_types), 
+                      update = update_ver)
+```

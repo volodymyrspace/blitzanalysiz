@@ -1,0 +1,251 @@
+---
+title: "Measuring tank performance, part II"
+linktitle: "2021-08-29 Measuring tank performance, part II"
+date: `r today("UTC")`
+publishdate: 2021-08-29
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: page_weight
+alwaysopen: false
+hidden: true
+tags: [ "post", "8.1" ]
+aliases:
+    - /blog/2021-08-28_measuring_tank_performance_2/
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = c('svglite', 'png'));
+update_ver <- "8.1"
+stats.tier.7       <- subset(stats.update, tier == 7)
+stats.tier.8       <- subset(stats.update, tier == 8)
+stats.perf.7        <- get_stats_tank_perf(stats.tier.7)
+stats.perf.8        <- get_stats_tank_perf(stats.tier.8)
+var2rm = c('stats.tier.7', 'stats.tier.8', 'stats.perf.7', 'stats.perf.8')
+```
+
+Measuring and comparing tanks’ performance was my key motivation behind the decision to 
+develop the [BlitzAnalysiz[]](/) site. In a [Measuring tank performance, part I](/blog/2020-06-08_measuring_tank_performance/) 
+I showed how tanks’ player bases differ from each other and why thus **Average WR is a poor measure for comparing tanks’ performance**. 
+Have a look at the differences among the `r md_link_tank(tank_names='Tiger II', update=update_ver)` 
+and `r md_link_tank(tank_names='Somua SM', update=update_ver)` players' WR at 
+`r md_link_tier(update=update_ver, tier = 8)`. There is over 8% difference 
+between the tanks' players average WR at tier VIII. That is  huge difference and 
+therefore it's clear the average WR of  
+`r md_link_tank(tank_names='Somua SM', update=update_ver)` is far higher than 
+that of `r md_link_tank(tank_names='Tiger II', update=update_ver)`. 
+
+```{r fig_player_WR_histogram}
+tanks.player_base = c('Tiger II', 'Somua SM')
+res <- stats.perf.8[ (name %in% tanks.player_base), 
+                            .('WR at Tier' = WR.tier.maxed, 
+                              Tank = name)]
+palette.sel <- c(9,2)
+
+plot_histogram(res, 'Player WR at tier VIII', update, x_name = 'WR at Tier', y_name = '% of Players', 
+               fill_var = 'Tank', 
+               palette.fill = palette.graphs[palette.sel], 
+               palette.annotate = palette.lines[palette.sel], 
+               binwidth = .01, x_step = .05, y_breaks = seq(0,1, 0.01), relative = TRUE, 
+               x_pct = TRUE, y_pct = TRUE, median = FALSE)
+```
+
+But does that tell the `r md_link_tank(tank_names='Somua SM', update=update_ver)` is a 
+better thank than `r md_link_tank(tank_names='Tiger II', update=update_ver)`? You 
+can't tell based on average WR. You need to look the tank's Relative WR to compare the 
+tanks' performance, not just the tanks' players' performance.
+
+# Relative WR has its issues
+
+But while Relative WR is a very good and (semi)understandable measure, but it has 
+few issues in practice. 
+
+## Shortage of data
+
+To keep the stats relevant, the analysis should be run for a reasonably short 
+period (e.g. for each update), but only small share of players play enough 
+battles in maxed-out tanks during each update. Most of the time players are 
+grinding new tanks. The histogram of tier VIII players shows how 33% of players 
+do not play a single game in a maxed out tank (or a premium tank) and how almost 
+80% of players do not play enough battles (20) in a maxed-out tank during an 
+update to get included into Relative WR calculations. In other words, only 
+20% of the players get included into Relative WR calculations (i.e. have enough 
+battles in at least one maxed-out tank and have enough battles at the same tier 
+in maxed out-tanks). This really is not an issue for more popular tanks, but it 
+impacts on the accuracy of Relative WR for less-played tanks. 
+
+```{r hist_maxed_out_tanks}
+## Dual histogram? 
+
+res.maxed <- stats.tier.8[ , .(Tanks = sum(!is.na(battles.tier.maxed)), 
+                               Type = as.factor('Maxed-out tanks')), 
+                    by=.(Player=account_id)]
+res.rWR <- stats.tier.8[ , .(Tanks = sum(!is.na(rWR)), 
+                              Type = as.factor('Tanks with enought battles')), 
+                    by=.(Player = account_id)]
+res <- rbindlist(list(res.maxed, res.rWR), use.names = TRUE)
+
+res[is.na(Tanks), Tanks:= 0]
+
+palette.fill <- palette_update(palette.graphs[c(1,6)], keys=c('Maxed-out tanks', 'Tanks with enought battles'))
+
+plot_histogram(res, 'Number of tanks played by players', update, 
+               'Tanks', '% of players', fill_var = 'Type', 
+               relative=TRUE, y_pct = TRUE, 
+               bin_breaks = seq(0,25,1), 
+               x_breaks = seq(0,25,5), y_breaks =seq(0, 1, 0.1), 
+               palette.fill = palette.fill,
+               mean=FALSE, median=FALSE, tier =8)
+
+```
+
+
+
+## Different comparison points
+
+Since players play enough battles with only very few maxed-out tanks during an update, 
+the comparison points for different players is not the same. One could think that with 
+enough data the differences will level, but not. For example just 2.3% of 
+`r md_link_tank(tank_names='Sturer Emil', update=update_ver)` players played 
+also `r md_link_tank(tank_names='Annihilator', update=update_ver)` enough for 
+their `r md_link_tank(tank_names='Annihilator', update=update_ver)` games to count 
+into Relative WR calculations. For `r md_link_tank(tank_names='Smasher', update=update_ver)` 
+players the percentage was 17%. 
+
+```{r Tier_VII_anni_smasher_StEmil}
+Anni = 7793
+Smasher = 5233
+St.Emil = 11025
+players <- stats.perf.7[tank_id %in% c(Anni, Smasher, St.Emil), .(Players=.N), by=.(Tank=name) ]
+
+
+players.with.Anni <- stats.perf.7[tank_id==Anni, account_id]
+players.with.Smasher <- stats.perf.7[tank_id==Smasher, account_id]
+players.with.StEmil <- stats.perf.7[tank_id==St.Emil, account_id]
+
+players.Anni_and_Smasher <- length(base::intersect(players.with.Anni, players.with.Smasher))
+players.Anni_and_St.Emil <- length(base::intersect(players.with.Anni, players.with.StEmil))
+
+players.Anni_and_Smasher_pct <- players.Anni_and_Smasher / length(players.with.Smasher)
+players.Anni_and_St.Emil_pct <- players.Anni_and_St.Emil / length(players.with.StEmil)
+
+res <- as.data.table(list('Tank'=c('Smasher', "Sturer Emil"), 
+                         'Played Annihilator'=c(players.Anni_and_Smasher_pct, players.Anni_and_St.Emil_pct )))
+
+plot_col_discrete_1Y(res, 'Share of players who played Annihilator', update, 
+                     x_name = 'Tank', y_name='Played Annihilator', fill_var = 'Tank', 
+                     palette.fill = as.vector(palette.vehicle_class[c('Heavy Tank', 'Tank Destroyer')]), 
+                     x_ordered = TRUE, 
+                     y_step = NULL, y_steps = 10, y_breaks = NULL, 
+                     x_labels = NULL, 
+                     y_signif = 3, y_pct = TRUE, 
+                     tier = 7)
+
+## ADD a bar chart? 
+```
+
+It seems players who play an OP tank (that often premiums) are more likely to play also 
+other OP tanks.  This is distorting Relative WR as a measure since the comparison point 
+for those players is already elevated. And I don't blame the players - it takes certain 
+attitude to play underdog tanks for fun.
+
+
+## Player base composition 
+
+Different tanks are played by different player populations. While the Relative WR is more 
+resistant to the player base skill differences than average WR, it is not immune to those. 
+The differences become meaningful with tanks with specially high skill-floor or low skill-ceiling. 
+These tanks perform relatively worse (or better) with low-skilled (and vice versa for 
+the highly-skilled) players. Light tanks are generally tanks with high skill-floor. It takes 
+considerable skill to even carry one’s own weight in light tanks. As you can see from the 
+Relative WR by WR at the tier plot below, less-skilled players underperform in 
+`r md_link_tank(tank_names="Spähpanzer SP I C", update=update_ver)`, but very good 
+players overperform their personal tier VII average. 
+
+```{r rWR_per_skill_level_SP_IC}
+perf_measure <- 'Relative WR'
+by_measure <- 'WR at Tier'
+tierN <- 7
+tankID <- 18961    
+tank_name = get_tank_name(tankID)
+
+res <- stats.perf.7[ DT_filter_enough_battles.rWR(stats.perf.7), 
+                          .('WR at Tier' = WR.tier.maxed, 
+                            'Relative WR' = rWR), 
+                          by=.(Player = account_id, Tank = name)]
+
+title.tier <- paste0('Tier ', get_tier_roman(tierN), ' tanks')
+
+title <- get_plot_title_perf_by(tank_name, perf_measure, 'WR at Tier')
+
+plot_average_Y(res, title, update, by_measure, perf_measure, 
+               fill_var ='Tank', fill_elems = tank_name, 
+               bin_breaks = buckets.WR,
+               x_pct = TRUE, y_step = 0.01, y_pct = TRUE,
+               palette.fill = palette.vehicle_class[[get_tank_type(tankID)]],
+               palette.annotate = palette.vehicle_class.lines[[get_tank_type(tankID)]],
+               avg_name = title.tier, mean = TRUE, tier = tierN)
+
+
+```
+
+A contrary effect can be seen in tanks with a low skill-ceiling. These are tanks which 
+perform relatively worse in the hands of very good players. These are often well-armored, 
+but slow tanks. The armor keeps poor players alive, but the poor mobility hinders good 
+players from seizing opportunities they could with other more mobile tanks. 
+`r md_link_tank(tank_names='VK 168.01 (P)', update=update_ver)` is one example of 
+tanks with low skill-ceiling. It does not mean that good players have lower WR in it than 
+bad players, but it means good players have (on average) lower WR in the 
+`r md_link_tank(tank_names='VK 168.01 (P)', update=update_ver)` than in their other 
+same tier tanks. 
+
+
+```{r rWR_per_skill_level_VK168.01P}
+perf_measure <- 'Relative WR'
+by_measure <- 'WR at Tier'
+tierN <- 8
+tankID <- 21265
+tank_name = get_tank_name(tankID)
+
+res <- stats.perf.8[ DT_filter_enough_battles.rWR(stats.perf.8), 
+                          .('WR at Tier' = WR.tier.maxed, 
+                            'Relative WR' = rWR), 
+                          by=.(Player = account_id, Tank = name)]
+
+title.tier <- paste0('Tier ', get_tier_roman(tierN), 'tanks')
+
+title <- get_plot_title_perf_by(tank_name, perf_measure, 'WR at Tier')
+
+plot_average_Y(res, title, update, by_measure, perf_measure, 
+               fill_var = 'Tank', fill_elems = tank_name, 
+               bin_breaks = buckets.WR,
+               x_pct = TRUE, y_step = 0.01, y_pct = TRUE,
+               palette.fill = palette.vehicle_class[[get_tank_type(tankID)]],
+               palette.annotate = palette.vehicle_class.lines[[get_tank_type(tankID)]],
+               avg_name = title.tier, mean = TRUE, tier = tierN)
+rm(list=var2rm)
+```
+
+It is easy to see how the player population can impact significantly to the tanks (average) 
+Relative WR if tank's Relative WR varies greatly by player skill-level. If, for example, 
+`r md_link_tank(tank_names='VK 168.01 (P)', update=update_ver)` was played mostly by 
+below-average players, its (average) Relative WR would be high, but if it were mostly played
+by very good players, its (average) Relative WR would be low and actually negative 
+(i.e. below average).
+
+# Conclusion 
+
+Despite the issues discussed above Relative WR is a good tank performance measure. 
+It should be noted that the last issue - the impact of player population - is a 
+sampling issue and not an issue of the Relative WR per se. Player population impacts 
+on every performance measure. 
+
+The distortions caused by sampling errors are common in all statistical studies and 
+surveys. The common way to counter sampling issues and in case of tank stats the 
+differences in player base composition is the use of 
+[stratified sampling](https://en.wikipedia.org/wiki/Stratified_sampling). 
+The issues of availability of data and different comparison points are more 
+fundamental and directly related to the Relative WR methodology. 
+
+But how to tackle the first two issues? Well, I would have not written this post 
+if I didn't have something in mind. Stay tuned ;-) 

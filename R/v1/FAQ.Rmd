@@ -1,0 +1,71 @@
+---
+title: "Frequently Asked Questions"
+menutitle: FAQ
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: 13
+alwaysopen: false
+hidden: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, dev = 'svglite', fig.ext = 'svgz');
+```
+
+### 1. Where is the data from
+
+All the data has been collected from [Wargaming API](https://developers.wargaming.net/reference/) and processed with [R/RStudio](https://rstudio.com/).
+
+### 2. Are your numbers correct? Is there bias in the numbers? 
+
+The statistics have been calculated from a data set with very high number of players (700,000+) and battles (in total 6bn+). That is maybe 4 times the users [Blitzstars.com](https://Blitzstars.com) has. However, there _is_ still [sampling bias](https://en.wikipedia.org/wiki/Sampling_bias) as there is any Blitz stats tracker site. This is evidenced by the [overall WR distribution](/update/`r update.latest`/#player-wr-dist) and the share of all wins out of all the battles in the database being above 50%. This is a topic worth of a longer post - stay tuned. 
+
+### 3. Why did you make the site?
+
+Out of pure interest into analyzing Blitz game statistics and to learn data analysis and [R](https://rstudio.com/). 
+
+### 4. What is "Relative WR"?
+
+Relative WR the average of player WR in a tank minus their Average WR in all the same tier tanks. If the tank is perfectly balanced, its Relative WR is 0 %. Large positive Relative WR indicates the tank is "very good" (read "OP"). Negative Relative WR indicate the tank performce worse than other same tier tanks. Relative WR is one of the better (if not the best) best measures for tank performance since [it takes the skill differences in tanks' playerbases](/blog/2020-06-08_measuring_tank_performance/#tanks-have-different-playerbases) into account, _IMHO_.
+
+{{% expand "Relative WR R code" %}}
+**rWR** = Relative WR
+
+````r
+  # calculate players WR at a tier (WR.tier) for all the _maxed-out_ tanks
+  stats[DT_filter_tank_is_maxed2(all.battles.new, tier, is_premium), 
+     WR.tier := sum(all.wins)/sum(all.battles), by=.(account_id, tier)];
+  # Count the number of maxed out tanks per player per tier
+  stats[DT_filter_tank_is_maxed2(all.battles.new, tier, is_premium),
+     tanks.tier := .N, by=.(account_id, tier)];
+  # Calculate relative WR for players with 2 or more maxed-out tanks at the tier. 
+  # Relative WR is calculated only maxed-out tanks with enough battles during the update 
+  stats[ (tanks.tier > 1) & DT_filter_battles_tank(all.battles, tier), 
+          rWR := WR - WR.tier];
+````
+
+The bit cryptic syntax is R's [data.table](https://cran.r-project.org/web/packages/data.table/vignettes/datatable-intro.html) - one of the fastest software packages for data analysis.
+{{% /expand %}}
+
+
+### 5. Is BlitzAnalysiz[]' Relative WR different from Blitzstars' one? 
+
+Yes, a bit. At the moment Blitzstars.com calculate the Relative WR as WR difference to the players' average WR over all their tanks. BlitzAnalysiz[] considers only the other same tier tanks. The real differences are likely rather small.  
+
+### 6. Why is the number of players of a tank different in different tables? 
+
+Performance related graphs/tables are being calculated only of tanks that:
+* Are _maxed-out_ based on a tier-dependent _estimate_ it takes to max out a tank (tier V: `r min_battles.grinds[[5]]`, tier X: `r min_battles.grinds[[10]]` battles). Premium tanks do not have this requirement
+* The player has enough battles (10-20) in the tank during the update. The requirement depends on the tier. 
+* The player is out from sub-5k MM queue existing in EU and RU servers (min `r min_battles.career.5k_mm` battles). This requirement is not applied to the Asia or North America servers. 
+
+In addition, Relative WR charts require a player to have:
+* Enough battles in at least two maxed out tanks at a tier
+
+Graphs/tables showing tank popularity or battles played do not filter battles. 
+
+### 7. I spotted a mistake or I have a question/request
+
+All the feedback on the site is welcome. You can reach out me via email ([Jylpah@gmail.com](mailto:jylpah@gmail.com)), Discord (Jylpah#4662). I am also active at [WoT Blitz EU forums](http://forum.wotblitz.eu/index.php?/forum/19-gameplay/).

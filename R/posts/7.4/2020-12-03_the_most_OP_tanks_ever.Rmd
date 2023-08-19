@@ -1,0 +1,123 @@
+---
+title: "The most OP tanks - ever"
+linktitle: "2020-12-03 The most OP tanks - ever"
+date: `r today("UTC")`
+publishdate: 2020-12-03
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: page_weight
+alwaysopen: false
+hidden: true
+tags: [ "post" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = c("svglite", "png"))
+# Load stats
+update_ver <- "7.4"
+stopifnot(update_ver == update)
+fn <- filename_career(update)
+stats <- qread(fn)
+stats <- calc_tank_stats(stats, career_stats = TRUE)
+```
+
+A fellow tanker asked a 
+[simple question](http://forum.wotblitz.eu/index.php?/topic/54989-most-op-regular-tank-of-all-time/) 
+of "what is the most OP _regular_ tank in Blitz of all time?". 
+A fair question and something I would have not been able to guess. 
+
+Of course the definition of the "best" is the one that decides the 
+answer and I have chosen the criteria to be 
+[Relative WR](/blog/2020-06-08_measuring_tank_performance/#introducing-relative-wr) 
+- the average of the differences between players' WR in a tank and average WR in 
+their all same tier tanks. And in this case I have calculated it over the time, 
+not during the peak performance of each of the tanks. WG has launched many tank 
+lines with OP tanks, but over the time most of those have been nerfed to reasonable 
+levels or been power-creeped.  
+
+# The most OP regular tanks of all times
+
+To my surprise the most OP tank of all times is 
+`r md_link_tank(tank_names='Emil I', update=update_ver)`. It is not that there never have 
+been more OP regular tanks than Emil I, but those have been nerfed and 
+over the time their "average OPness" had been brought under more 
+reasonable levels.   
+
+
+```{r fig_top20_regular_tanks_Relative_WR_all_time}
+res <- head(stats[DT_filter_enough_battles.rWR(stats),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(all.battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
+][(!Premium) & (Players >= min_players.tank)][order(-`Relative WR`)], n = topN)
+x_name <- "Tank"
+y_name <- "Relative WR"
+y2_name <- "Players"
+res <- prep_plot_tank(res, y_name)
+plot_col_discrete_2Y(res, "Top 20 Regular Tanks by Relative WR of all times", update,
+  x_name, y_name, y2_name,
+  fill_var = "Vehicle Class", y2_pct = FALSE
+)
+```
+
+#### The most OP regular tanks of all times - Table
+
+{{% expand "Show table" %}}
+```{r top20_regular_tanks_Relative_WR_all_time, echo = FALSE}
+md_table(res, update_ver = update)
+```
+{{% /expand %}}
+
+# The most OP tanks of all times
+##### Including premium tanks
+
+But is `r md_link_tank(tank_names='Emil I', update=update_ver)` the most OP tank in 
+the game all-time - including the premium tanks? Not even close to. 
+It barely fits into the TOP 10. The most OP tank of all the times is 
+of course the legendary `r md_link_tank(tank_names='Type 98 Ke-Ni Otsu', update=update_ver)`. 
+It was released with wrong parameters and never sold since. WG did not 
+dare to nerf it since some players managed to buy it before WG noticed 
+the mistake. Due to its rarity (and age) it's not played much and thus 
+it is not visible in the `r md_link_update()` on [BlitzAnalysiz[]](/).
+
+```{r fig_top20_tanks_Relative_WR_all_time}
+res <- head(stats[DT_filter_enough_battles.rWR(stats),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(all.battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
+][Players >= min_players.tank][order(-`Relative WR`)], n = topN)
+x_name <- "Tank"
+y_name <- "Relative WR"
+y2_name <- "Players"
+res <- prep_plot_tank(res, y_name)
+
+plot_col_discrete_2Y(res, "Top 20 Tanks by Relative WR of all times", update,
+  x_name, y_name, y2_name,
+  fill_var = "Vehicle Class", y2_pct = FALSE
+)
+```
+
+
+#### The most OP tanks of all times - Table
+
+{{% expand "Show table" %}}
+```{r top20_tanks_Relative_WR_all_time, echo = FALSE}
+rm(stats)
+md_table(res, update_ver = update)
+```
+{{% /expand %}}

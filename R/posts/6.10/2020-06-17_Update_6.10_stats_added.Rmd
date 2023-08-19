@@ -1,0 +1,48 @@
+---
+title: "Update 6.10 stats added"
+linktitle: "2020-06-17 Update 6.10 stats added"
+date: `r today("UTC")`
+publishdate: 2020-06-17
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "post", "6.10" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = 'svglite', fig.ext = 'svgz');
+update_ver <- '6.10'
+stopifnot(all(exists("stats.update"), update_ver == update))
+res <- stats.update[, .(Battles=sum(all.battles), Players=uniqueN(account_id))]
+stats.update.perf <- get_stats_tank_perf.rWR(stats.update)
+```
+
+Stats for `r md_link_update(update_ver)` has been added to the site. How did the ATGM tanks 
+actually perform? Did Sheridan deserve its upcoming nerf in `r md_link_update("7.0")`? 
+(no, it was nowhere near the top...)
+
+
+```{r fig_tanks_tier10_RelativeWR}
+tank_type  	<- NULL
+tierN 			<- 10
+stats 			<- subset(stats.update.perf, tier == tierN)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
+```
+
+Was `r md_link_tank(tank_name="T92E1", update="6.10")` still one of the best 
+performing `r md_link_update(update="6.10", link_text="tier IX tanks", rel_link="tanks/9/")`? 
+(well, 15th and perfectly balanced)
+
+
+```{r fig_tanks_tier9_RelativeWR}
+tank_type  	<- NULL
+tierN 			<- 9
+stats 			<- subset(stats.update.perf, tier == tierN)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
+```
+
+
+I also discovered a bug in the code (function params in wrong order) that has likely impact the earlier 
+results to some extend by filtering out too many results. Fixed now after several hours of debugging...

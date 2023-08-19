@@ -1,0 +1,278 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, error = FALSE,
+  dev = "svglite", fig.ext = "svgz"
+)
+# Checks
+stopifnot(exists("target_page"))
+stopifnot(exists("stats.career"))
+stopifnot(exists("stats.update"))
+update <- get_path_elem(target_page, 2)
+stats.update.perf <- get_stats_tank_perf(stats.update)
+tanks.enough_players <- get_tanks_enough_players(stats.update.perf)
+preliminary <- is_preliminary(update)
+```
+---
+title: "Career stats" 
+menutitle: "Career stats"
+linktitle: "Career stats (`r update_version(update)`)"
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: 3
+tags: [ "`r update`", "Career stats"  ]
+autohide: true
+hidden: true
+alwaysopen: false
+---
+
+`r update_if_final(update, '', '_Preliminary stats_')`
+
+This page shows statistics of players' battles fought during their Blitz "career" until the end of **update `r update`**. 
+
+## Battles per Player
+
+Number of career/cumulative battles per player in the end of the update `r update`.
+
+```{r fig_career_battle_count_histogram}
+res <- stats.career[, .(Battles = first(battles.career)),
+  by = account_id
+]
+plot_histogram(res, "Career Battles per Players", update,
+  "Battles", "Share of Players %",
+  x_lims = c(0, 50e3), x_step = 5000, y_step = 2.5 / 100, x_signif = 2,
+  y_pct = TRUE, y_signif = 2
+)
+
+res <- res[, .(mean = mean(Battles), median = median(Battles), max = max(Battles))]
+```
+
+An average player has played `r as.integer(res$mean)` battles by the end of update `r update`. Median battle count was `r res$median` and the largest number of battles recorded by a single player (in the dataset) was `r auto_format(res$max)` battles. The following tables shows battle counts by N% most inactive players during the update (i.e. "90% most inactive" == "10% most active"). 
+
+### Battles per Player table
+
+{{% expand "Show table" %}}
+
+The table below shows the (max) number of battles played until the end of `r update` by the X% most _inactive_ players. Reading tip: 10% most _active_ players have played more than the 90% most _inactive_ players.
+
+```{r career_battle_count_summary, echo = FALSE}
+md_table_quantiles(stats.career[, .(Battles = first(battles.career)),
+  by = account_id
+][, Battles], "Battles", c(seq(0, .9, .05), seq(.91, 1, 0.01)))
+```
+{{% /expand %}}
+
+## Player WR distribution
+
+The following graph shows a histogram of players (y-axis) with certain career WR (x-axis). 
+
+```{r fig_career_player_WR_histogram}
+res <- stats.career[, .(WR = first(WR.career)),
+  by = account_id
+]
+plot_histogram(res, "Player Career WR distribution", update,
+  x_name = "WR", y_name = "Share of Players",
+  x_lims = c(.2, .8), x_step = .05, x_pct = TRUE,
+  y_pct = TRUE, y_step = .01, binwidth = .01
+)
+```
+
+{{% expand "Show table" %}}
+```{r career_player_WR, echo = FALSE}
+h <- hist(stats.career[all.battles > min_battles.career,
+  .(WR = first(WR.career)),
+  by = account_id
+][, WR], breaks = 100, plot = FALSE)
+sum.counts <- sum(h$counts)
+h$density <- h$counts / sum.counts
+h$cum <- cumsum(h$density)
+len <- length(h$breaks)
+res <- data.table("Career WR" = h$breaks[2:len], "Share %" = h$density, "Cumulative share %" = h$cum)[(`Career WR` >= .2) & (`Career WR` < .81)]
+md_table(res)
+```
+{{% /expand %}}
+
+## Current WR vs. Career Battles played
+
+This graph shows Player WR during the update `r update` vs. player career battles. Average tier is not taken into account.
+
+```{r fig_career_battles_vs_current_WR, message=FALSE}
+x_name <- "Battles"
+y_name <- "WR"
+fill_name <- "WR"
+title <- "Current WR by Career Battles"
+
+res <- stats.update[, .(
+  "WR" = first(WR.global),
+  "Battles" = first(battles.career)
+),
+by = account_id
+][, .N, by = .(
+  Battles = cut(Battles, breaks = buckets.battles.career, include.lowest = TRUE),
+  WR = cut(WR, breaks = buckets.WR, include.lowest = TRUE)
+)][order(Battles, WR)]
+
+x_labels <- auto_range_format(buckets.battles.career)
+fill_labels <- percent_range_format(buckets.WR)
+
+plot_marimekko(res, title, update,
+  x_name = "Battles", fill_var = "WR", palette.fill = palette.WN8,
+  x_labels = x_labels, fill_labels = fill_labels
+)
+```
+
+## Career WR vs. Career Battles played
+
+This graph shows Player career WR vs. career battles. Average tier is not taken into account.
+
+```{r fig_career_battles_vs_WR, message=FALSE}
+x_name <- "Battles"
+y_name <- "WR"
+fill_name <- "WR"
+title <- "Career WR by Career Battles"
+
+res <- stats.career[, .(
+  "WR" = first(WR.career),
+  "Battles" = first(battles.career)
+),
+by = account_id
+][, .N, by = .(
+  Battles = cut(Battles, breaks = buckets.battles.career, include.lowest = TRUE),
+  WR = cut(WR, breaks = buckets.WR, include.lowest = TRUE)
+)][order(Battles, WR)]
+
+x_labels <- auto_range_format(buckets.battles.career)
+fill_labels <- percent_range_format(buckets.WR)
+
+plot_marimekko(res, title, update,
+  x_name = "Battles", fill_var = "WR", palette.fill = palette.WN8,
+  x_labels = x_labels, fill_labels = fill_labels
+)
+```
+
+
+## Average Tier
+
+The following graph shows a histogram of share of players (y-axis) average tier (x-axis). Only players with more than `r min_battles.career` battles during their Blitz "career" are included.
+
+```{r fig_career_player_avg_tier_histogram}
+res <- stats.career[battles.career > min_battles.career,
+  .("Average Tier" = sum(tier * all.battles) / first(battles.career)),
+  by = account_id
+]
+plot_histogram(res, "Average Tier", update,
+  "Average Tier", "Share of Players %",
+  x_lims = c(1, 10), x_step = 1, y_step = 0.01
+)
+```
+
+## WR vs. Average Tier
+
+This graph shows player Career WR vs. average tier until the end of update `r update`. Minimum `r min_battles.career` battles required. 
+
+```{r fig_career_WR_vs_avg_tier,warning=FALSE,message=FALSE}
+res <- stats.career[battles.career > min_battles.career,
+  .(
+    "Career WR" = first(WR.career),
+    "Average Tier" = sum(tier * all.battles) / first(battles.career)
+  ),
+  by = account_id
+][order(`Career WR`)][sample(.N, min(.N, 50e3))]
+plot_average_XY(res, "Player Career WR vs. Average Tier", update, "Average Tier", "Career WR",
+  x_breaks = seq(1, 10), y_breaks = seq(0, 1, .1), y_pct = TRUE, y_lims = c(.3, .7), panel_top = TRUE
+)
+```
+
+## Battles per Tier
+
+This graph shows average number of career battles per tier.   
+
+```{r fig_career_battles_per_tier}
+res <- stats.career[, .(Battles = sum(all.battles)),
+  by = .(account_id, tier)
+][, .(Battles = mean(Battles)),
+  by = .(Tier = tier)
+][order(Tier)]
+res <- prep_plot_tier(res, "Battles")
+plot_col_continuous_1Y(res, "Average Battles per Tier", update, "Tier", "Battles", y_pct = FALSE, y_step = 500)
+```
+
+
+## Most popular Tanks by Players
+
+This graph shows the tanks with the most players. This counts all the battles played until the end of the update. More [Tank Statistics here](../).
+
+```{r fig_career_tanks_most_popular}
+res <- head(stats.career[, .(
+  "Average WR" = DT_ratio(all.wins, all.battles),
+  "Battles/Player" = mean(all.battles),
+  "Players" = uniqueN(account_id),
+  "Premium" = first(is_premium)
+),
+by = name
+][order(-Players)], n = 20)
+res <- prep_plot_tank(res, "Players")
+
+plot_col_discrete_1Y(res, "Most Popular Tanks", update, "Tank", "Players", fill_var = "Tank type", y_pct = FALSE)
+```
+
+### Most popular Tanks - Table
+
+{{% expand "Show table" %}}
+```{r career_tanks_most_popular, echo = FALSE}
+md_table(res, update_path_lvl = 1, enough_players = tanks.enough_players)
+```
+{{% /expand %}}
+
+## Most played Tanks
+
+This graph shows the most played tanks by their owners during their career. More [Tank Statistics here](../).
+
+```{r fig_career_tanks_most_battles}
+res <- head(stats.career[, .(
+  "Average WR" = DT_ratio(all.wins, all.battles),
+  "Battles/Player" = mean(all.battles),
+  "Battles" = sum(all.battles),
+  "Players" = uniqueN(account_id),
+  "Premium" = first(is_premium)
+),
+by = name
+][order(-`Battles`)], n = 20)
+res <- prep_plot_tank(res, "Battles")
+
+plot_col_discrete_1Y(res, "Most Battles", update, "Tank", "Battles", fill_var = "Tank type", y_pct = FALSE, y_steps = 20)
+```
+### Most played Tanks - Table
+
+{{% expand "Show table" %}}
+```{r career_tanks_most_battles, echo = FALSE}
+md_table(res, update_path_lvl = 1, enough_players = tanks.enough_players)
+```
+{{% /expand %}}
+
+## Most Battles by Player
+
+This graph shows the most played tanks by their owners during their career (=battles/players). More [Tank Statistics here](../).
+
+```{r fig_career_tanks_most_played}
+res <- head(stats.career[, .(
+  "Average WR" = DT_ratio(all.wins, all.battles),
+  "Battles/Player" = mean(all.battles),
+  "Players" = uniqueN(account_id),
+  "Premium" = first(is_premium)
+),
+by = name
+][order(-`Battles/Player`)], n = 20)
+res <- prep_plot_tank(res, "Battles/Player")
+
+plot_col_discrete_1Y(res, "Most Battles by Player", update, "Tank", "Battles/Player", fill_var = "Tank type", y_pct = FALSE, y_step = 100)
+```
+
+### Most Played Tanks - Table
+
+{{% expand "Show table" %}}
+```{r career_tanks_most_played, echo = FALSE}
+md_table(res, update_path_lvl = 1, enough_players = tanks.enough_players)
+```
+{{% /expand %}}

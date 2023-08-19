@@ -1,0 +1,360 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150,echo = FALSE, warning=FALSE, dev = 'svglite', fig.ext = 'svgz');
+stopifnot(exists('target_page'))
+update 			<- get_path_elem(target_page, 2)
+preliminary <- is_preliminary(update)
+tank_id 		<- get_path_elem_int(target_page,5)
+tier 				<- get_path_elem_int(target_page,3)
+tierN 			<- tier
+tier.roman 	<- get_tier_roman(tier)
+tank_ID 		<- tank_id
+tank_name 	<- get_tank_name(tank_id)
+tank_type 	<- get_tank_type(tank_id)
+tank_nation <- get_tank_nation(tank_id)
+tank_is_premium 			<- get_tank_is_premium(tank_id)
+tank_nation.str 			<- Nations.str[[as.integer(tank_nation)]]
+min_battles.tier 			<- get_min_battles_tier(tier)
+min_battles.tank 			<- floor(min_battles.tier / 2)
+min_battles.grind 		<- get_grind_len(tier)
+title.tier.tank_type <- paste0('Tier ', tier.roman, ' ',tank_type, 's')
+
+# # tier stats (perf)
+# if (! exists('stats.tier.perf')) {
+#   stats.tier.perf <- get_stats_tank_perf(ds_load_ts_maxed(update,
+#                                                           tank_tier = tierN,
+#                                                           cols = cols.sel))
+# }
+
+cols.tank <- c('account_id', 'tank_id', 'battles', 'battles.career',
+              'region', 'name', 'tier', 'nation', 'type', 'is_premium', 'WR',
+              'rWR', 'WR.tier.maxed', 'battles.tier.maxed', 'avg_dmg', 'avg_kills',
+              'spot_rate', 'hit_rate', 'shots', 'survival_rate', 'battle_life_time')
+
+if (! exists('stats.tier.type.perf')) {
+#  cols.tier <- c('account_id', 'tank_id', 'battles', 'battles.career',
+#              'region', 'name', 'tier', 'nation', 'type', 'is_premium', 'WR',
+#              'rWR', 'WR.tier.maxed', 'battles.tier.maxed', 'avg_dmg', 'avg_kills',
+#              'spot_rate', 'hit_rate')
+
+  stats.tier.type.perf <- get_stats_tank_perf(ds_load_ts_maxed(update,
+                                                              tank_tier = tierN,
+                                                              tank_type = tank_type,
+                                                              cols = cols.tank))
+}
+
+stats.tank <- subset(stats.tier.type.perf, tank_id==tank_ID)
+
+if (! has_enough_players(stats.tank, tank_ID)) {
+        knit_exit(DELETE_PAGE)
+}
+
+var2rm	<- c('res', 'stats.tank')
+if (nrow(stats.tank) > 2000) {
+        bin_breaks = seq(.25, .85, 0.05)
+} else {
+        bin_breaks = seq(.25, .85, 0.1)
+}
+```
+
+---
+title: "`r get_tank_name(tank_id)`"
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+description: "`r tank_name` tank stats. A tier `r paste(tier.roman, tank_type)` in World of Tanks Blitz. Update `r update`"
+tags: [ "`r update`", "Tier `r tier.roman`", "Tanks/Tier", "`r tank_type`", "`r get_tank_name(tank_id)`" ]
+alwaysopen: false
+hidden: true
+autohide: false
+---
+
+`r update_if_final(update, '', '_Preliminary stats_')`
+
+`r tank_name` is a `r tank_nation.str` [Tier `r tier.roman`](../../)
+`r if (tank_is_premium) {'[premium](../../premium-tanks/) '}``r md_link_tank_type(tank_id, '../../')`.
+
+## Player Population
+
+This graphs compare's the tank's player population by _WR at Tier_ to other same tier `r tank_type`s.
+
+```{r fig_tank_player_base, warning = FALSE}
+res <- stats.tier.type.perf[ DT_filter_enough_battles.rWR(stats.tier.type.perf),
+                          .('WR at Tier' = WR.tier.maxed,
+                            'Tank' = name)]
+
+title <- 'Player Base Skill-level (WR at the Tier)'
+
+perf_measure <- 'Players'
+by_measure <- 'WR at Tier'
+
+plot_histogram_continuous(res, title, update,
+                          by_measure, perf_measure,
+                          fill_var ='Tank', fill_elems = tank_name,
+                          x_step = 0.05,y_steps = 10,
+                          x_pct = TRUE, y_pct = TRUE, x_signif = 3,
+                          palette.fill = palette.vehicle_class[[get_tank_type(tank_id)]],
+                          palette.annotate = palette.vehicle_class.lines[[get_tank_type(tank_id)]],
+                          avg_name = title.tier.tank_type, mean = FALSE, tier = tierN)
+```
+
+## Relative WR vs. Player Skill-level
+
+This graphs shows how well players of different skill-level (measured by _WR at Tier_)
+perform in the tank vs. their other same tier, same type tanks.
+
+```{r fig_tank_relativeWR, warning=FALSE}
+
+perf_measure <- 'Relative WR'
+by_measure <- 'WR at Tier'
+
+res <- stats.tier.type.perf[DT_filter_enough_battles.rWR(stats.tier.type.perf),
+                          .('WR at Tier' = WR.tier.maxed,
+                            'Relative WR' = rWR),
+                          by=.(Player = account_id, Tank = name)]
+
+title <- get_plot_title_perf_by(tank_name, perf_measure, 'WR at Tier')
+
+plot_average_Y(res, title, update, by_measure, perf_measure,
+               fill_var = 'Tank', fill_elems = tank_name,
+               bin_breaks = bin_breaks,
+               x_pct = TRUE, y_steps = 10, y_pct = TRUE,
+               palette.fill = palette.vehicle_class[[get_tank_type(tank_id)]],
+               palette.annotate = palette.vehicle_class.lines[[get_tank_type(tank_id)]],
+               avg_name = title.tier.tank_type, mean = TRUE, tier = tier)
+
+```
+
+
+# Stat levels vs. WR
+
+These graphs players _input-stats_ vs. the WR they have reached with the tank.
+The players' averages over all the same tier tanks is shown in grey.
+The bars show the 20-80% stat levels within the WR bucket
+(20% of players will have higher/lower stats than these).
+
+## Average Damage
+
+```{r fig_tank_avg_dmg, warning=FALSE}
+
+perf_measure <- 'Average Damage'
+by_measure <- 'WR at Tier'
+
+res <- stats.tier.type.perf[ DT_filter_enough_battles(stats.tier.type.perf),
+                          .('WR at Tier' = WR.tier.maxed,
+                            #'WR (Tank)' = WR,
+                            'Average Damage' = avg_dmg),
+                          by=.(Player = account_id, Tank = name)]
+
+title.tier.avg <- paste0('Tier ', tier.roman, ' Average')
+
+title <- get_plot_title_perf_by(tank_name, perf_measure, 'WR')
+
+plot_quantile_Y(res, title, update, by_measure, perf_measure,
+               fill_var ='Tank', fill_elems = tank_name,
+               bin_breaks = bin_breaks, x_pct = TRUE, y_pct = FALSE, y_steps = 10,
+               palette.fill = palette.vehicle_class[[get_tank_type(tank_id)]],
+               palette.annotate = palette.vehicle_class.lines[[get_tank_type(tank_id)]],
+               avg_name = title.tier.avg, tier = tier)
+
+```
+
+## Kills per Battle
+
+```{r fig_tank_avg_kills, warning=FALSE}
+
+perf_measure <- 'Kills per Battle'
+by_measure <- 'WR at Tier'
+
+res <- stats.tier.type.perf[ DT_filter_enough_battles(stats.tier.type.perf),
+                          .( 'WR at Tier' = WR.tier.maxed,
+                             #'WR (Tank)' = WR,
+                             'Kills per Battle' = avg_kills),
+                          by=.(Player = account_id, Tank = name)]
+
+title <- get_plot_title_perf_by(tank_name, perf_measure, 'WR')
+
+plot_quantile_Y(res, title, update, by_measure, perf_measure,
+                fill_var ='Tank', fill_elems = tank_name,
+                bin_breaks = bin_breaks, x_pct = TRUE, y_pct = FALSE, y_steps = 10,
+                palette.fill = palette.vehicle_class[[get_tank_type(tank_id)]],
+                palette.annotate = palette.vehicle_class.lines[[get_tank_type(tank_id)]],
+                avg_name = title.tier.tank_type, tier = tier)
+
+```
+
+## Spot Rate
+
+```{r fig_tank_spot_rate, warning=FALSE}
+
+perf_measure <- 'Spot Rate'
+by_measure <- 'WR at Tier'
+
+res <- stats.tier.type.perf[  DT_filter_enough_battles(stats.tier.type.perf),
+                           .( 'WR at Tier' = WR.tier.maxed,
+                              #'WR (Tank)' = WR,
+                              'Spot Rate' = spot_rate),
+                           by=.(Player = account_id, Tank = name)]
+
+title <- get_plot_title_perf_by(tank_name, perf_measure, 'WR')
+
+plot_quantile_Y(res, title, update, by_measure, perf_measure,
+                fill_var ='Tank', fill_elems = tank_name,
+                bin_breaks = bin_breaks, x_pct = TRUE, y_pct = FALSE, y_steps = 10,
+                palette.fill = palette.vehicle_class[[get_tank_type(tank_id)]],
+                palette.annotate = palette.vehicle_class.lines[[get_tank_type(tank_id)]],
+                avg_name = title.tier.tank_type, tier = tier)
+```
+
+
+## Hit Rate
+
+```{r fig_tank_hit_rate, warning=FALSE}
+
+perf_measure <- 'Hit Rate'
+by_measure <- 'WR at Tier'
+
+res <- stats.tier.type.perf[  DT_filter_enough_battles(stats.tier.type.perf),
+                           .( 'WR at Tier' = WR.tier.maxed,
+                              # 'WR (Tank)' = WR,
+                              'Hit Rate' = hit_rate),
+                           by=.(Player = account_id, Tank = name)]
+
+title <- get_plot_title_perf_by(tank_name, perf_measure, 'WR')
+
+plot_quantile_Y(res, title, update, by_measure, perf_measure,
+                fill_var ='Tank', fill_elems = tank_name,
+                bin_breaks = bin_breaks, x_pct = TRUE, y_step = 0.025, y_pct = TRUE,
+                palette.fill = palette.vehicle_class[[get_tank_type(tank_id)]],
+                palette.annotate = palette.vehicle_class.lines[[get_tank_type(tank_id)]],
+                avg_name = title.tier.tank_type, tier = tier)
+```
+
+
+# WR analysis
+
+These graphs shows how different stat-pairs (X/Y) relate to WR (the color coding).
+
+## Average Damage + kills per Battle vs. WR
+
+This graphs shows Average WR as a function of Average Damage and Kill per Battle.
+
+```{r fig_tank_WR_vs_avg_dmg_kills, warning=FALSE}
+x_name = 'Average Damage'
+y_name = 'Kills/Battle'
+z_name = 'WR'
+res <- stats.tank[ ,
+              .('Average Damage' = avg_dmg,
+                'Kills/Battle' = avg_kills,
+                'WR' = WR,
+                'Battles' = battles)]
+
+title <- get_plot_title_tank_z_is_xy(tank_name, z_name, x_name, y_name)
+
+plot_contour_discrete(res, title, update,
+                      x_name, y_name, z_name, weights = 'Battles',
+                      col.palette = palette.WN8,
+                      col.levels = buckets.WR,
+                      tier = tierN)
+
+```
+
+## Spot Rate + Survival Rate vs. WR
+
+```{r fig_tank_WR_vs_spots_survival, warning=FALSE}
+x_name = 'Survival Rate'
+y_name = 'Spot Rate'
+z_name = 'WR'
+res <- stats.tank[,
+              .( 'Survival Rate' = survival_rate,
+                'Spot Rate' = spot_rate,
+                'WR' = WR,
+                'Battles' = battles)]
+
+title <- get_plot_title_tank_z_is_xy(tank_name, z_name, x_name, y_name)
+
+plot_contour_discrete(res, title, update,
+                      x_name, y_name, z_name, weights = 'Battles',
+                      col.palette = palette.WN8,
+                      col.levels = buckets.WR,
+                      x_pct = TRUE , tier = tier)
+
+```
+
+
+## Spot Rate + Average Battle Lifetime vs. WR
+
+
+```{r fig_tank_WR_vs_spots_lifetime, warning=FALSE}
+x_name = 'Average Battle Lifetime'
+y_name = 'Spot Rate'
+z_name = 'WR'
+res <- stats.tank[,
+              .( 'Average Battle Lifetime' = battle_life_time / battles,
+                'Spot Rate' = spot_rate,
+                'WR' = WR,
+                'Battles' = battles)][`Average Battle Lifetime` <= 7*60]
+
+title <- get_plot_title_tank_z_is_xy(tank_name, z_name, x_name, y_name)
+
+plot_contour_discrete(res, title, update,
+                      x_name, y_name, z_name, weights = 'Battles',
+                      col.palette = palette.WN8,
+                      col.levels = buckets.WR,
+                      x_pct = FALSE, tier = tier)
+
+```
+
+
+## Shots/Battle + Average Battle Lifetime vs. WR
+
+
+```{r fig_tank_WR_vs_shots_lifetime, warning=FALSE}
+x_name = 'Average Battle Lifetime'
+y_name = 'Shots/Battle'
+z_name = 'WR'
+res <- stats.tank[,
+              .( 'Average Battle Lifetime' = battle_life_time / battles,
+                'Shots/Battle' = shots/battles,
+                'WR' = WR,
+                'Battles' = battles)][`Average Battle Lifetime` <= 7*60]
+
+title <- get_plot_title_tank_z_is_xy(tank_name, z_name, x_name, y_name)
+
+plot_contour_discrete(res, title, update,
+                      x_name, y_name, z_name, weights = 'Battles',
+                      col.palette = palette.WN8,
+                      col.levels = buckets.WR,
+                      x_pct = FALSE,
+                      tier = tier)
+```
+
+
+## Hit Rate + Shots/Battle vs. WR
+
+
+```{r fig_tank_WR_vs_hit_rate_shots, warning=FALSE}
+x_name = 'Shots/Battle'
+y_name = 'Hit Rate'
+z_name = 'WR'
+res <- stats.tank[,
+              .('Hit Rate' = hit_rate,
+                'Shots/Battle' = shots/battles,
+                'WR' = WR,
+                'Battles' = battles)]
+
+title <- get_plot_title_tank_z_is_xy(tank_name, z_name, x_name, y_name)
+
+plot_contour_discrete(res, title, update,
+                      x_name, y_name, z_name, weights = 'Battles',
+                      col.palette = palette.WN8,
+                      col.levels = buckets.WR,
+                      y_pct = TRUE,
+                      tier = tier)
+
+```
+
+```{r clean_up, include=FALSE}
+rm(list=var2rm)
+gc(verbose = FALSE)
+```

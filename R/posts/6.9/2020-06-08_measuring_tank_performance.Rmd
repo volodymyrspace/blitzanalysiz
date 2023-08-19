@@ -1,0 +1,662 @@
+---
+title: "Measuring tank performance"
+linktitle: "2020-06-08 Measuring tank performance"
+date: `r today("UTC")`
+publishdate: 2020-06-08
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "post", "6.9" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = "svglite", fig.ext = "svgz")
+update_ver <- "6.9"
+stopifnot(all(exists("stats.update"), update_ver == update))
+
+tier <- 9
+tierN <- tier
+
+stats.tier <- get_stats.update.tier(tierN = tierN, DT = stats.update)
+stats.tier.perf <- get_stats_tank_perf.rWR(stats.tier)
+palette.post.200608.tank_perf.tanks <- c(
+  "Prototipo Standard B" = palette.italy.green,
+  "AMX 30 1er prototype" = palette.france.blue
+)
+# palette.post.200608.tank_perf.tanks <- c('T-62A'= 'black', 'Object 140'= 'red')
+tanks.post.200608.tank_perf <- names(palette.post.200608.tank_perf.tanks)
+```
+_Updated 2020-08-11_
+
+Over-Powered (OP) tanks are maybe the 2nd most popular topic on Blitz YouTube videos and online chats 
+- right after "the Matchmaker". I have long held the view that if a tank is "OP", this has to be 
+visible in statistics. Otherwise there are only qualitative / subjective views left and those come 
+in all sorts. 
+
+```{r fig_tanks_tier_WR_topN}
+res <- head(stats.tier[DT_filter_enough_battles(stats.tier) & (type == "Medium Tank"),
+  .(
+    "Average WR" = mean(WR),
+    "Players" = uniqueN(account_id),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
+][Players >= min_players.tank][order(-`Average WR`)], n = 10)
+x_name <- "Tank"
+y_name <- "Average WR"
+res <- prep_plot_tank(res, y_name)
+title <- "Tier IX Medium tanks by Average WR"
+plot_col_discrete_1Y(res, title, update, x_name, y_name,
+  fill_var = "Tank type", palette.fill = palette.premium,
+  y_step = .1, y_pct = TRUE, top = TRUE
+)
+```
+
+People are susceptible to [all kinds of biases](https://en.wikipedia.org/wiki/List_of_cognitive_biases#Memory_errors_and_biases) 
+in their thinking. Getting ammoracked by a Death Star will raise suspicion that 
+the Death Star is an OP tank even though it is actually the worst tier X 
+tank. Anecdotal experiences distort opinions and no one remembers those
+ countless battles where a Death Star was at the bottom of the list. 
+ Therefore, tank performance is not a thing that we should vote about, 
+ but a thing we can measure with statistics. 
+
+## How to measure performance in the game? 
+
+Let's discuss first how to measure performance in the game. I am a proponent of 
+**win rate being the best measure for performance** (player or tank) - not 
+average damage, not average kills, and not speed, not alpha damage or any 
+other attribute or characteristics. The reason for choosing win rate over 
+other variables is the fact that **winning is the objective of the game** 
+and all the damage, kills, spotting etc. are just means to win the game. 
+Why measure proxy variables when you can measure the final variable itself? 
+
+There are some caveats in using WR as a performance measure:
+
+1.	It requires _many_ battles for the WR to settle near one's performance level due to 
+both MM and RNG: It takes 400 battles to reach +/- 5% accuracy, 10000 battles to 
+reach +/- 1% accuracy and whopping 1 million battles to reach 0.1% accuracy with 
+95% confidence level. [Check this link at PC WoT forums for details]( http://forum.worldoftanks.eu/index.php?/topic/357838-winrate-for-mathematicians-a-quantitative-analysis/).
+2.	Platoon rate impacts on WR but cannot be separated well from the statistics 
+since WG does not publish platoon rate per tank played, but just as a aggregate 
+level over all the tanks. Platooning with a good player can lift one's WR 5-15%. 
+3.	Career WR measures historical average, not one's present performance level,
+ and it reacts slowly once the player has lot (10k+) battles. 
+4.	WG's new "newbie MM queue" has distorted the Career stats for rerollers 
+big time. This distorts both tank and player average WR. (Just ignore global & career WR).
+5.	Some tanks are more powerful than others. Comparing different players' 
+WR in different tanks or global WR does not tell us much.
+6.	Different tiers have different level of difficulty. Global / Average WR is 
+close to useless for measuring player / tank performance. 
+7.	Stock tanks' performance is significantly lower compared to when maxed-out. 
+
+But other performance measures have issues too and can be gamed; Easiest way to 
+increase average damage is to play more high tiers and more TDs, WN8 can be gamed 
+by playing popular tech three tanks that are difficult for below average players 
+and not too popular among the unicums.
+
+Despite all the issues related to WR, I consider it the best performance measure 
+over a large number of battles and in case of tanks, over large number of players 
+since it measures directly the objective of the game (=to win battles). It is also 
+a more understandable measure vs. somewhat abstract indexes. But I believe 
+performance indicators like WN8 which are based on _input stats_ (average damage, kills, spots) 
+give a more accurate view of players' short-term performance (< 100 battles) than WR.
+
+Now going back to the tank performance.
+
+## So Average WR it is then, right? 
+
+_Not so fast._ Average WR of a tank is a good starter, but it has its own biases. 
+Let's have a look at two tier IX mediums: _AMX 30 1er prototype_ and _Prototipo Standard B_. 
+Everything here is based on `r update` data.
+
+```{r fig_Tank_WR} 
+res <- stats.tier[DT_filter_enough_battles(stats.tier),
+  .(
+    "Average WR" = mean(WR),
+    "Players" = uniqueN(account_id)
+  ),
+  by = (Tank <- name)
+][(Tank %in% tanks.post.200608.tank_perf)]
+x_name <- "Tank"
+y_name <- "Average WR"
+plot_col_discrete_1Y(res, "Average WR", update, x_name, y_name,
+  fill_var = "Tank", palette.fill = palette.post.200608.tank_perf.tanks,
+  x_ordered = FALSE, top = TRUE
+)
+```
+
+```{r Tank_WR}
+md_table(res)
+```
+
+Both tanks have also been played by thousands of players, but the AMX seems to have
+ significantly higher average WR. Many would be tempted to claim the AMX is a 
+ better tank than Standard B. But is it? 
+
+{{% expand "Testing for Statistical significance" %}}
+As the t-test shows below, **the difference in average WR between the tanks is statistically significant with any confidence level**. 
+
+```{r averageWR_sign}
+res <- stats.tier[DT_filter_enough_battles(stats.tier),
+  .("Average WR" = WR),
+  by = (Tank <- name)
+][(Tank %in% tanks.post.200608.tank_perf)]
+# t-test
+t_test <- t.test(
+  res[Tank == tanks.post.200608.tank_perf[[1]], `Average WR`],
+  res[Tank == tanks.post.200608.tank_perf[[2]], `Average WR`]
+)
+t_test
+cat(paste("p-value:", signif(t_test$p.value, digits = 2), "\n\n"))
+p.lim <- .01
+if (t_test$p.value < p.lim) {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal has to be rejected (i.e. there is a statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+} else {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal cannot be rejected (i.e. there is not statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+}
+```
+{{% /expand %}}
+
+## Tank performance is a different variable from player skill
+
+Let us first consider a single player and the factors affecting the player's chances to win one battle:
+
+_Chance of winning ~ player skill * tank performance + RNG + team performance - enemy team performance_
+
+Over a large number of battles the variables _team performance_ and _enemy team performance_ 
+approach their respective averages and the impact of RNG approaches zero ("What RNG gives, RNG takes"). 
+The more battles one plays in a tank, only two factors will influence one's WR in it:
+
+_WR ~ player skill * tank performance_ 
+
+And to be more precise, _player skill_ is _average player skill in the tank in question_. 
+Platooning has been ignored here since unfortunately WG does not publish very usable 
+platooning stats via their [API](https://developers.wargaming.net/). 
+
+Saying "any tank is OP in good players hands" is the same as saying "any car 
+is fast in the hands of a good driver". While a good driver can make better-than-average 
+lap times with a slow car, a good driver does not make the car any faster, but is 
+just ... a good driver. Give the driver a faster car and they can drive even faster.
+
+**TL;DR. Tank performance and player skill are two separate things**
+
+## Tanks have different playerbases
+
+Let's now go back to the AMX 30 1er prototype vs. Standard B example and 
+compare the playerbases. I have chosen _player average WR at the tier_ as 
+a measure for "player skill". And more precisely as measured during the 
+update under study (i.e. not career WR). This eliminates couple of biases:
+
+*	WR during the update measures the player's current performance unlike 
+Career WR that measures the average historical performance 
+(re-rollers vs. normal players)
+*	It measures player performance at the tier in question unlike average 
+WR over all the tiers, and thus is not distorted by low-tier stats-padding 
+
+The plot below shows player WR distribution at tier IX (in any tank) for the 
+both AMX 30 1er prototype and Standard B players. It is clear that the AMX 30 
+1er prototype is played by better players than Standard B. Stock tank battles 
+(Standard B) have been filtered out based on an estimate of battles required to 
+max-out the tank (`r min_battles.grinds[[9]]`). 
+
+```{r fig_player_WR_histogram}
+res <- stats.tier[
+  DT_filter_enough_battles.tier(stats.tier) &
+    (name %in% tanks.post.200608.tank_perf),
+  .(
+    "WR at Tier" = WR.tier.maxed,
+    Tank = name
+  )
+]
+
+plot_histogram(res, "Player WR at tier IX", update,
+  x_name = "WR at Tier", y_name = "% of Players",
+  fill_var = "Tank", palette.fill = palette.post.200608.tank_perf.tanks,
+  palette.annotate = palette.lines[c(1, 6)],
+  binwidth = .01, x_step = .05, y_breaks = seq(0, 1, .01),
+  x_pct = TRUE, y_pct = TRUE, median = FALSE
+)
+```
+
+```{r Player_WR, echo = FALSE}
+res <- res[, .("Avg player WR at Tier IX" = mean(`WR at Tier`)), by = Tank]
+md_table(res)
+```
+
+While both the tanks have been played by thousands of players, the AMX is a 
+premium tank whereas Standard B is a Tech Three tank. The players of the 
+both the tanks are roughly equally experienced (see the histogram graph below), 
+but the AMX players are significantly better on average. 
+
+```{r fig_player_battle_count_histogram}
+res <- stats.tier[
+  DT_filter_enough_battles.tier(stats.tier) &
+    (name %in% tanks.post.200608.tank_perf),
+  .(
+    "Battles" = battles.career,
+    Tank = name
+  )
+]
+
+x_breaks <- seq(0, 100e3, 10e3)
+y_breaks <- seq(0, 10000, 1)
+binwidth <- 1000
+
+plot_histogram(res, "Player career battles", update,
+  x_name = "Battles", y_name = "Share of players %", fill_var = "Tank",
+  palette.fill = palette.post.200608.tank_perf.tanks,
+  palette.annotate = palette.lines[c(1, 6)],
+  x_step = 10e3, y_step = 0.01, binwidth = binwidth,
+  x_lims = c(0, 100e3), y_pct = TRUE, median = FALSE
+)
+```
+
+But do the differences in the tanks' player bases explain the difference in 
+Average WR differences or not? 
+
+## Introducing Relative WR
+
+To separate the players' skill-level distribution from tank performance, we need 
+to compare players' WR in a tank to their skill-level. As explained above, I have 
+chosen _Average WR at the Tier_ as the measure for player skill. 
+[Blitzstars' Tank-Compare]( https://tank-compare.blitzstars.com/) uses players' 
+average WR (on any tier) as a measure for player skill in its Relative WR graphs. 
+I have chose to use the WR at the tier in question to eliminate the impact of 
+low-tier stat padding. 
+
+_Relative WR(tank)  = Average(WR in a tank  - Player's WR at the Tier)_
+
+In a nutshell, **Relative WR shows how much more/less the players are winning with the tank vs. their tier average**. 
+The higher the Relative WR, the stronger the tank is.
+
+```{r fig_relativeWR_avg}
+res <- stats.tier.perf[,
+  .(
+    "Relative WR" = rWR,
+    "WR at tier" = WR.tier.maxed,
+    "WR" = WR
+  ),
+  by = .(Player = account_id, Tank = name)
+][(Tank %in% tanks.post.200608.tank_perf)]
+
+plot_col_discrete_1Y(res[, .("Relative WR" = mean(`Relative WR`)), by = Tank], "Relative WR", update,
+  x_name = "Tank", y_name = "Relative WR", x_ordered = FALSE, top = FALSE,
+  fill_var = "Tank",
+  palette.fill = palette.post.200608.tank_perf.tanks,
+  y_step = 0.1 / 100
+)
+# t-test
+t_test <- t.test(
+  res[Tank == tanks.post.200608.tank_perf[[1]], `Relative WR`],
+  res[Tank == tanks.post.200608.tank_perf[[2]], `Relative WR`]
+)
+```
+
+```{r relativeWR, echo = FALSE}
+md_table(res[, .(
+  "Average WR" = mean(WR),
+  "WR at Tier" = mean(`WR at tier`),
+  "Relative WR" = mean(`Relative WR`),
+  "Players" = .N
+), by = Tank])
+```
+
+The Relative WR graph above shows that players perform a _bit_ better 
+with Standard B than the AMX when compared to their tier IX average. 
+The AMX's average WR is far higher than the Standard B's, but its 
+playerbase is far better too - on average. when the differences in 
+the playerbase are taken into account, the difference becomes small 
+and to the Standard B's advantage. **The difference IS statistically significant** 
+See significance testing below. 
+
+Premium tanks and new higher tier tank lines are often played by better 
+players than average. This distorts the average WR of those tanks and 
+makes people regard the tanks as OP whereas the fundamental reason can 
+be that the tanks are just being played by better players. Yes, there 
+are many borderline-OP & ridiculously-broken premium tanks, but the 
+Relative WR analysis allows us to separate tank performance from skill-level 
+differences in the tanks' playerbases.
+
+{{% expand "Testing for Statistical significance" %}}
+
+From statistical perspective the Standard B performs better than the AMX 
+on average. p-value `r signif(t_test$p.value, digits = 2)` well below 
+the limit 0.05 (95% confidence level).  
+
+```{r relativeWR_average_sign, echo = FALSE}
+# t-test
+t_test
+cat(paste("p-value:", signif(t_test$p.value, digits = 2), "\n\n"))
+p.lim <- .05
+if (t_test$p.value < p.lim) {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal has to be rejected (i.e. there is a statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+} else {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal cannot be rejected (i.e. there is not statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+}
+```
+{{% /expand %}}
+
+**TL;DR: Relative WR measures how much higher/lower WR players achieve in a tank vs. their average WR at the same tier.**
+
+_OK, is this wall of text over now? Nope._
+
+## Performance within player skill category
+
+The data shows that the Standard B's Relative WR is _slightly_ higher 
+than the AMX 30 1er prototype's - _on average_ - although the difference 
+is not strictly statistically significant. The caveat here is the words
+_on average_. How about performance in the hands of below/above average 
+players? Some tanks are known to be difficult for less-skilled players, 
+but well performing in the hands of more skilled players. 
+
+Let's see how the Standard B and the AMX perform when played by different 
+player skill categories.
+
+### Performance in the hands of super-good players (WR at tier >70%)
+
+```{r fig_relativeWR_gt70}
+res <- stats.tier.perf[,
+  .(
+    "Relative WR" = rWR,
+    WR.tier = WR.tier.maxed
+  ),
+  by = .(Player = account_id, Tank = name)
+][(Tank %in% tanks.post.200608.tank_perf) & (WR.tier > .7)]
+
+plot_col_discrete_1Y(res[, .("Relative WR" = mean(`Relative WR`)), by = Tank],
+  title = "Relative WR (WR at Tier > 70%)", update,
+  x_name = "Tank", y_name = "Relative WR",
+  x_ordered = FALSE, top = FALSE, fill_var = "Tank",
+  palette.fill = palette.post.200608.tank_perf.tanks,
+  y_step = 0.1 / 100, y_pct = TRUE
+)
+
+t_test <- t.test(
+  res[Tank == tanks.post.200608.tank_perf[[1]], `Relative WR`],
+  res[Tank == tanks.post.200608.tank_perf[[2]], `Relative WR`]
+)
+```
+
+```{r relativeWR_gt70, echo = FALSE}
+md_table(res[, .("Relative WR" = mean(`Relative WR`), "Players" = .N), by = Tank])
+```
+
+Standard B _seems_ to perform better than the AMX in the hands of super-good players. 
+However, the player sample is on the small side and 
+**the difference is not statistically significant** (see below).
+
+{{% expand "Testing for Statistical significance" %}}
+```{r relativeWR_gt70_sign, echo = FALSE}
+# t-test
+
+t_test
+cat(paste("p-value:", signif(t_test$p.value, digits = 2), "\n\n"))
+p.lim <- .05
+if (t_test$p.value < p.lim) {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal has to be rejected (i.e. there is a statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+} else {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal cannot be rejected (i.e. there is not statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+}
+```
+
+{{% /expand %}}
+
+### Performance in the hands of very good players (WR at tier 60-70%)
+
+```{r fig_relativeWR_60_70}
+res <- stats.tier.perf[,
+  .(
+    "Relative WR" = mean(rWR),
+    WR.tier = WR.tier.maxed
+  ),
+  by = .(Player = account_id, Tank = name)
+][(Tank %in% tanks.post.200608.tank_perf) & (WR.tier >= .6) & (WR.tier < .7)]
+
+plot_col_discrete_1Y(res[, .("Relative WR" = mean(`Relative WR`)), by = Tank], "Relative WR (WR at Tier 60-70%)", update,
+  x_name = "Tank", y_name = "Relative WR",
+  x_ordered = FALSE, top = FALSE, fill_var = "Tank",
+  palette.fill = palette.post.200608.tank_perf.tanks,
+  y_step = 0.1 / 100
+)
+
+t_test <- t.test(
+  res[Tank == tanks.post.200608.tank_perf[[1]], `Relative WR`],
+  res[Tank == tanks.post.200608.tank_perf[[2]], `Relative WR`]
+)
+```
+
+
+```{r relativeWR_60_70, echo = FALSE}
+md_table(res[, .("Relative WR" = mean(`Relative WR`), "Players" = .N), by = Tank])
+```
+
+When considering only players with 60-70% WR at tier IX, Standard B 
+is still slightly better, but the margin is minuscule. The p-value 
+is `r signif(t_test$p.value, digits = 2)` so **the difference is not statistically significant** 
+at _any_ reasonable confidence level. 
+
+{{% expand "Testing for Statistical significance" %}}
+```{r relativeWR_60_70_sign, echo = FALSE}
+# t-test
+
+t_test
+cat(paste("p-value:", signif(t_test$p.value, digits = 2), "\n\n"))
+p.lim <- .05
+if (t_test$p.value < p.lim) {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal has to be rejected (i.e. there is a statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+} else {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal cannot be rejected (i.e. there is not statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+}
+```
+{{% /expand %}}
+
+### Performance in the hands of good players (WR at tier 50-60%)
+
+```{r fig_relativeWR_50_60}
+res <- stats.tier.perf[,
+  .(
+    "Relative WR" = mean(rWR),
+    WR.tier = WR.tier.maxed
+  ),
+  by = .(Player = account_id, Tank = name)
+][(Tank %in% tanks.post.200608.tank_perf) & (WR.tier >= .5) & (WR.tier < .6)]
+
+plot_col_discrete_1Y(res[, .("Relative WR" = mean(`Relative WR`)), by = Tank], "Relative WR (WR at Tier 50-60%)", update,
+  x_name = "Tank", y_name = "Relative WR",
+  x_ordered = FALSE, top = FALSE, fill_var = "Tank",
+  palette.fill = palette.post.200608.tank_perf.tanks,
+  y_step = 0.1 / 100
+)
+
+t_test <- t.test(
+  res[Tank == tanks.post.200608.tank_perf[[1]], `Relative WR`],
+  res[Tank == tanks.post.200608.tank_perf[[2]], `Relative WR`]
+)
+```
+
+```{r relativeWR_50_60, echo = FALSE}
+md_table(res[, .("Relative WR" = mean(`Relative WR`), "Players" = .N), by = Tank])
+```
+
+For this player category the results have reversed again, and Standard B 
+performs bit better vs. the AMX. This is a large player category in 
+the overall dataset, but still 
+**the difference is not statistically significant** (p-value is `r signif(t_test$p.value, digits = 2)`). 
+
+{{% expand "Testing for Statistical significance" %}}
+```{r relativeWR_50_60_sign, echo = FALSE}
+# t-test
+
+t_test
+cat(paste("p-value:", signif(t_test$p.value, digits = 2), "\n\n"))
+p.lim <- .05
+if (t_test$p.value < p.lim) {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal has to be rejected (i.e. there is a statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+} else {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal cannot be rejected (i.e. there is not statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+}
+```
+{{% /expand %}}
+
+### Performance in the hands of below-average players (WR at tier 40-50%)
+
+```{r fig_relativeWR_40_50}
+res <- stats.tier.perf[,
+  .(
+    "Relative WR" = rWR,
+    WR.tier = WR.tier.maxed
+  ),
+  by = .(Player = account_id, Tank = name)
+][(Tank %in% tanks.post.200608.tank_perf) & (WR.tier >= .4) & (WR.tier < .5)]
+
+plot_col_discrete_1Y(res[, .("Relative WR" = mean(`Relative WR`)), by = Tank], "Relative WR (WR at Tier 40-50%)", update,
+  x_name = "Tank", y_name = "Relative WR",
+  x_ordered = FALSE, top = FALSE, fill_var = "Tank",
+  palette.fill = palette.post.200608.tank_perf.tanks,
+  y_step = 0.2 / 100
+)
+# t-test
+t_test <- t.test(
+  res[Tank == tanks.post.200608.tank_perf[[1]], `Relative WR`],
+  res[Tank == tanks.post.200608.tank_perf[[2]], `Relative WR`]
+)
+```
+
+```{r RelativeWR_40_50, echo = FALSE}
+md_table(res[, .("Relative WR" = mean(`Relative WR`), "Players" = .N), by = Tank])
+```
+
+When analyzing players with 40-50% WR at tier IX, Standard B 
+performance clearly better. Considering that this is a large player 
+group, it is easy to understand why Standard B's _average_ Relative WR 
+is higher than the AMX's. My _guess_ is that it is the Standard B's burst 
+DPM that helps the below average players, where as AMX requires more skill 
+in e.g. ridge fighting to perform, even it is a very good tank in the hands of a 
+skilled player. Also, for this player group, **the difference in Relative WR is statistically significant** 
+(p-value `r signif(t_test$p.value, digits = 2)`). 
+
+{{% expand "Testing for Statistical significance" %}}
+```{r relativeWR_40_50_sign, echo = FALSE}
+# t-test
+t_test
+cat(paste("p-value:", signif(t_test$p.value, digits = 2), "\n\n"))
+p.lim <- .05
+if (t_test$p.value < p.lim) {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal has to be rejected (i.e. there is a statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+} else {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal cannot be rejected (i.e. there is not statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+}
+```
+{{% /expand %}}
+
+### Performance in the hands of well below-average players (WR at tier <40%)
+
+```{r fig_relativeWR_lt40}
+res <- stats.tier.perf[,
+  .(
+    "Relative WR" = rWR,
+    WR.tier = WR.tier.maxed
+  ),
+  by = .(
+    Player = account_id,
+    Tank = name
+  )
+][(Tank %in% tanks.post.200608.tank_perf) &
+  (WR.tier < .4)]
+
+plot_col_discrete_1Y(res[, .("Relative WR" = mean(`Relative WR`)), by = Tank], "Relative WR (WR at Tier <40%)", update,
+  x_name = "Tank", y_name = "Relative WR",
+  x_ordered = FALSE, top = FALSE, fill_var = "Tank",
+  palette.fill = palette.post.200608.tank_perf.tanks,
+  y_step = 0.1 / 100
+)
+# t-test
+t_test <- t.test(
+  res[Tank == tanks.post.200608.tank_perf[[1]], `Relative WR`],
+  res[Tank == tanks.post.200608.tank_perf[[2]], `Relative WR`]
+)
+```
+
+```{r RelativeWR_lt40, echo = FALSE}
+md_table(res[, .("Relative WR" = mean(`Relative WR`), "Players" = .N), by = Tank])
+```
+
+Here the difference in Relative WR turns even larger between the tanks. Standard B 
+seems to perform significantly better for players with below-average skills. 
+Again, I suspect the reason being the burst damage. Even the sample size is 
+getting small **the difference IS statistically significant** (p-value `r signif(t_test$p.value, digits = 2)`)). 
+
+{{% expand "Testing for Statistical significance" %}}
+```{r relativeWR_lt40_sign, echo = FALSE}
+# t-test
+
+t_test
+cat(paste("p-value:", signif(t_test$p.value, digits = 2), "\n\n"))
+p.lim <- .05
+if (t_test$p.value < p.lim) {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal has to be rejected (i.e. there is a statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+} else {
+  cat(paste("Null hypothesis of the tanks's Relative WR being equal cannot be rejected (i.e. there is not statistically significant difference at", percent_format(1 - p.lim), "confidence level"))
+}
+```
+{{% /expand %}}
+
+## Final words
+
+As you can see, the question of tanks' performance is not that straightforward. 
+Even though average WR is such a common measure for tanks' performance, 
+it fails to separate the impact of the different 
+playerbases from the underlying tank performance. And even when comparing 
+tank's (average) Relative WR it only answers to the question _in average_ - 
+not for very good player or well-below average player. 
+
+To understand how does a tank perform in the hands of certain skill-level players, 
+the Relative WR analysis can still come handy as it can be run for a specific skill-level 
+players only. Again, the numbers are averages and there are always players who are 
+relatively better on one tank vs other. But the Relative WR analysis per skill-level 
+can help a player to choose tanks they are more likely to perform better with. 
+
+In case of the AMX 30 1er prototype and Standard B, the differences between the 
+tank performance are mostly insignificant, but not far from being statistically 
+significant. As anyone skilled player who has played those, both the tanks are good.
+I would call it a draw here since there are far larger imbalances in the game. 
+
+The graph below shows Relative WR for both the tanks as a function of players' 
+average WR at the tier (IX). The grey area shows the share of players with 
+particular WR at the tier in the data set. Small sample sizes are likely to 
+cause errors in both the ends of the graph. 
+
+```{r fig_player_RelativeWR, message = FALSE}
+res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier),
+  .(
+    "Tier WR" = WR.tier.maxed,
+    "Tank WR" = WR,
+    "Relative WR" = rWR,
+    "Battles" = all.battles
+  ),
+  by = .(Player = account_id, Tank = name)
+][(Tank %in% tanks.post.200608.tank_perf)]
+
+p <- ggplot(res, aes(x = `Tier WR`)) +
+  geom_smooth(aes(y = `Relative WR`, group = Tank, color = Tank),
+    #              method = 'gam', formula = y ~ s(x, bs = "cs"), se = FALSE, n = 10) +
+    method = "loess", formula = y ~ x, se = FALSE, n = 10
+  ) +
+  geom_area(aes(y = after_stat(count) / sum(after_stat(count))), stat = "bin", color = "grey", alpha = 0.2, binwidth = .01) +
+  plot_theme(x_labels.angle = 0) +
+  scale_x_continuous("Player WR at tier IX", labels = percent_format(seq(0, 1, 0.05)), breaks = seq(0, 1, 0.05)) +
+  scale_y_continuous("Relative WR, Share of Players",
+    labels = percent_format(seq(-1, 1, .01)), breaks = seq(-1, 1, .01)
+  ) +
+  scale_color_manual("Tank", values = palette.post.200608.tank_perf.tanks) +
+  ggtitle("Relative WR", subtitle = get_subtitle(update, NULL))
+p
+```
+
+I find it surprising there were differences between the tanks' performance in the 60-70% and 70%+ WR player segments. The absolute differences are not that big and this could go into statistical error tolerances. What may explain the result is the fact that player skill follows broadly normal distribution, thus there are more players with (tier) WR closer to 50% than further away from it. Therefore the 60-70% WR player segment consist of mostly 60-65% players vs. 65-70% players. And there is quite a difference skill still between 60-65% and 70%+ players as I can observe every time I watch e.g. [Juicy Tender Steak](https://www.youtube.com/channel/UCpXlz_YO1yM2JBVFi7g727A) or [HisRoyalFatness](https://www.youtube.com/channel/UCrQ-Dy8lVsm11u8pCJ8W7Tw) playing tanks. 
+
+_That's all folks - this time_
+

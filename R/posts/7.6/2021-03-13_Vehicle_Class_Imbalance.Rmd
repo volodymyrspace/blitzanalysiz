@@ -1,0 +1,1053 @@
+---
+title: "Vehicle Class (Im)Balance"
+linktitle: "2021-03-13 Vehicle Class (Im)Balance"
+date: `r today("UTC")`
+publishdate: 2021-03-13
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: page_weight
+alwaysopen: false
+hidden: true
+tags: [ "post", "7.6" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = "svglite", fig.ext = "svgz")
+update_ver <- "7.6"
+min_players.pct <- 0.005
+```
+
+I my view, the game became more boring after WG added *Vehicle Class Matching* rules into the 
+MatchMaker (update 5.1). The exact vehicle class matching rules have been adjusted since, 
+but basically the Vehicle Class Matching  limits the number of Tank Destroyers and Light 
+Tanks per team and makes sure there is only +/-1 tank difference between the teams across 
+the vehicle classes. This results mirrored teams causing monotonic battles. In my view, 
+most of the vehicle class matching rules should be abolished, but I know well how I am 
+in the minority here. 
+
+```{r fig_tanks_all_Relative_WR_topN}
+stats.update.tiers <- subset(stats.update, tier >= 5)
+stats.update.tiers <- get_stats_tank_perf(stats.update.tiers)
+Nplayers <- stats.update.tiers[DT_filter_enough_battles.rWR(stats.update.tiers), uniqueN(account_id)]
+res <- head(stats.update.tiers[DT_filter_enough_battles.rWR(stats.update.tiers),
+  .(
+    "Relative WR" = mean(rWR),
+    "Players" = uniqueN(account_id),
+    "Vehicle Class" = first(type)
+  ),
+  by = name
+][Players >= Nplayers * min_players.pct][order(-`Relative WR`)], n = 20)
+x_name <- "Tank"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle("Top 20 Tanks by Relative WR", "All players Tiers V-X")
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+
+But the MM is not the main story of this post, but a long intro to the issue at 
+hand - **the imbalance of the vehicle classes in the game**. I believe WG tried 
+to solve fundamentally a balancing issue through the Vehicle Class Matching -rules. 
+And while there is a logic in their thinking, they could have fixed the root cause 
+instead and do better job balancing the tanks. When looking at the  best performing 
+tanks chart above, you can notice how light tanks are completely missing from the 
+list and how the mediums are severely under presented. **Heavies and heavily armored TDs rule**. 
+
+# Performance Vehicle Classes
+
+The average performance of vehicle classes varies per tier and per player skill class. 
+But there are certain patterns I am going to show below. I have used the 
+`r md_link_update(update=update_ver)` data since that is the latest update 
+with full stats available at the moment. 
+
+{{% expand "Techical details" %}}
+* The calculation of the average Relative WR of a vehicle class has been done *without* weighting 
+the data with the number of players. This avoids bias caused by hugely popular tanks like 
+`r md_link_tank(tank_names='FV215b (183)', tank_str = 'Death Star', update=update_ver)`). 
+* In practice this means calculating Relative WR for each tank first and then taken 
+averages per vehicle class. 
+* This eliminates the bias caused by popular tanks and each tank's relative WR has 
+the same weight regardless of the number of players playing it. 
+* However, the tanks played by less than 0.5% of the (tier's) player base have been 
+excluded from the vehicle class averages completely.  
+{{% /expand %}}
+
+# Tier X
+```{r}
+tierN <- 10
+```
+
+Let's first look at the `r md_link_tier(update=update_ver, tier=10)`. 
+
+## All players
+
+While the absolute differences are not massive, it is clear that the 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Heavy Tank', plural=TRUE)` 
+out-perform all the other vehicle classes when looking the stats over all the players. 
+The `r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Light Tank', plural=TRUE)` perform 
+the worst as one would expect due to the 
+[_high skill-floor_](https://esportsedition.com/general/skill-ceiling-skill-floor-esports-terminology/) 
+of those. The heavies on the other hand are often well-armored and more forgiving to drive.
+
+```{r fig_vehicle_classes_tier10_Relative_WR}
+tierN <- 10
+stats.tier <- get_stats.update.tier(tierN)
+stats.tier <- get_stats_tank_perf(stats.tier)
+Nplayers <- stats.tier[DT_filter_enough_battles.rWR(stats.tier), uniqueN(account_id)]
+
+res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle("Relative WR by Vehicle Class", paste("Tier", get_tier_roman(tierN), "All players"))
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+Let's now look the performance in different player skill categories.
+
+## Players with < 45% WR at Tier X
+
+```{r fig_vehicle_classes_tier10_Relative_WR_sub45}
+WR.min <- 0
+WR.max <- .45
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+
+_N = `r Nplayers`_
+
+As expected, the less-skilled players struggle a lot with the 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Light Tank', plural=TRUE)`
+ and do the `r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Light Tank', plural=TRUE)` 
+best with the `r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Tank Destroyer', plural=TRUE)` 
+that allow them to keep distance to the front line. But the stats of the low-skilled 
+players cannot be used for balancing the tanks and vehicle classes.
+
+## Players with 45-55% WR at Tier X
+
+```{r fig_vehicle_classes_tier10_Relative_WR_45_55}
+WR.min <- .45
+WR.max <- .55
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+For an average tier X player, the 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Heavy Tank', plural=TRUE)`
+perform the best and the `r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Light Tank', plural=TRUE)` 
+clearly the worst. The `r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Tank Destroyer', plural=TRUE)` are 
+almost perfectly balanced (on average). This is very much the expected result. 
+
+
+## Players with 55-65% WR at Tier X
+
+```{r fig_vehicle_classes_tier10_Relative_WR_55_65}
+WR.min <- .55
+WR.max <- .65
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+Wargaming has communicated it bases its balancing decisions 
+(commercial motivations set aside) to the performance of the "players with 55-65% WR". 
+What exacly does the "players with 55-65% WR" mean is not completely clear, but 
+this player segment should be close to Wargaming's "vehicle balancing focus group".  
+
+For the 55-65% WR players, the 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Heavy Tank', plural=TRUE)` 
+perform even better than for the average players. The 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Medium Tank', plural=TRUE)` have 
+improved too and are now _perfectly_ balanced. The 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Tank Destroyer', plural=TRUE)` 
+have dropped to the 3rd spot and the 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Light Tank', plural=TRUE)`
+continue to drag behind the rest. Clearly the skill-floor of the light tanks is still too high 
+for this player category. 
+
+## Players with 65%+ WR at Tier X
+
+```{r fig_vehicle_classes_tier10_Relative_WR_65plus}
+WR.min <- .65
+WR.max <- 1
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+When looking at the very good players (WR 65%+ at tier X), the picture is again 
+bit different. The 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Light Tank', plural=TRUE)` 
+perform clearly better are now very well balanced along with the 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Medium Tank', plural=TRUE)`. 
+The `r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Heavy Tank', plural=TRUE)`
+still perform the best and the 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Tank Destroyer', plural=TRUE)` 
+have dropped to the last underperform significantly (on average). There are exceptions 
+though like `r md_link_tank(tank_names='T110E3', update=update_ver)` 
+and `r md_link_tank(tank_names='AMX 50 Foch (155)', update=update_ver)`. 
+
+## Players with 75%+ WR at Tier X
+```{r}
+Nplayers <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+  (WR.tier.maxed > .75), uniqueN(account_id)]
+Nbattles <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+  (WR.tier.maxed > .75), sum(all.battles)]
+```
+
+I also checked how the _Ultra-Super-Unicums_ (players with 75%+ WR at the tier X) perform. 
+First of all, there are not that many of them (only `r Nplayers` in the database), 
+but that is still a solid number and there is a solid number of battles (`r Nbattles`) 
+behind the numbers. 
+
+```{r fig_vehicle_classes_tier10_Relative_WR_75plus}
+WR.min <- .75
+WR.max <- 1
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+The gaps between the `r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Heavy Tank', plural=TRUE)` 
+and the `r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Medium Tank', plural=TRUE)` and 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Light Tank', plural=TRUE)` 
+have now shrunk to irrelevant. But the 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Tank Destroyer', plural=TRUE)` 
+perform significantly worse. The -3% relative WR difference is at the same level as the 
+difference between `r md_link_tank(tank_names='Annihilator', update=update_ver)` 
+and `r md_link_tank(tank_names='Challenger', update=update_ver)`.
+
+## Tier X Conclusion
+
+It is clear that the `r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Heavy Tank', plural=TRUE)` 
+outperform all the tank-classes and the 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Tank Destroyer', plural=TRUE)` 
+underperform (on average). The 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Medium Tank', plural=TRUE)` and 
+`r md_link_tier_tank_type(update=update_ver, tier=10, tank_type = 'Light Tank', plural=TRUE)` 
+seem balanced although the light tanks have very high skill-floor. Naturally the tank balancing 
+has to be done tank by tank and WG should treat e.g. 
+`r md_link_tank(tank_names='T110E3', update=update_ver)` and 
+`r md_link_tank(tank_names='Grille 15', update=update_ver)` differently. 
+
+# Tier IX
+
+## All players
+
+```{r fig_vehicle_classes_tier9_Relative_WR}
+tierN <- 9
+stats.tier <- get_stats.update.tier(tierN)
+stats.tier <- get_stats_tank_perf(stats.tier)
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle("Relative WR by Vehicle Class", paste("Tier", get_tier_roman(tierN), "All players"))
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+The vehicle classes' average performance at `r md_link_tier(update=update_ver, tier=9)` is bit different than what could 
+be expected. Seeing the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Light Tank', plural=TRUE)` 
+to out-perform the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Medium Tank', plural=TRUE)` 
+among all the players is odd. More about that below. 
+
+## Players with < 45% WR at tier IX
+
+```{r fig_vehicle_classes_tier9_Relative_WR_sub45}
+WR.min <- 0
+WR.max <- .45
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+The results for the less-skilled players (tier IX WR < 45%) are quite as expected, except that the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Light Tank', plural=TRUE)`
+ out-perform the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Medium Tank', plural=TRUE)`. 
+This is an indication that the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Light Tank', plural=TRUE)` 
+are very strong compared to the `r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Medium Tank')` counterparts. The 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Light Tank', plural=TRUE)`
+should have a high skill-floor.
+
+## Players with 45-55% WR at tier IX
+
+```{r fig_vehicle_classes_tier9_Relative_WR_45_55}
+WR.min <- .45
+WR.max <- .55
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+For the average players (45-55% WR at tier IX), the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Heavy Tank', plural=TRUE)` 
+outperform the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Tank Destroyer', plural=TRUE)`
+and the `r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Heavy Tank', plural=TRUE)`
+drag behind others. 
+
+## Players with 55-65% WR at tier IX
+
+```{r fig_vehicle_classes_tier9_Relative_WR_55_65}
+WR.min <- .55
+WR.max <- .65
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+The WG's "vehicle balancing focus group" clearly reveals how the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Medium Tank', plural=TRUE)`
+underperform. This player category should be able to leverage the better mobility of the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Medium Tank', plural=TRUE)`,
+but those still perform the worst with a margin . 
+
+
+## Players with 65%+ WR at tier IX
+
+```{r fig_vehicle_classes_tier9_Relative_WR_65plus}
+WR.min <- .65
+WR.max <- 1
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+The vehicle class performance in the hands of very good players (Tier IX WR 65%+) 
+clearly show the imbalances at 
+`r md_link_tier(update=update_ver, tier=9)`. The 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Light Tank', plural=TRUE)` 
+are  outperforming the rest and even the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Tank Destroyer', plural=TRUE)`
+are outperforming the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Medium Tank', plural=TRUE)`. 
+The poor performance of the 
+`r md_link_tier_tank_type(update=update_ver, tier=9, tank_type = 'Medium Tank', plural=TRUE)`
+in the hands of the most skilled players shows how the tier's medium tanks need some buffs. 
+However, the absolute differences are not massive: less than 1% between the best and worst 
+performing vehicle class. **The Tier IX is probably the most balanced tier in the game at the moment**. 
+
+# Tier VIII
+
+`r md_link_tier(update=update_ver, tier=8)` is the most popular tier in the game. 
+
+## All players
+
+```{r fig_vehicle_classes_tier8_Relative_WR}
+tierN <- 8
+stats.tier <- get_stats.update.tier(tierN)
+stats.tier <- get_stats_tank_perf(stats.tier)
+
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle("Relative WR by Vehicle Class", paste("Tier", get_tier_roman(tierN), "All players"))
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+At `r md_link_tier(update=update_ver, tier=8)`, the 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Heavy Tank', plural=TRUE)` 
+perform the best and the 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Tank Destroyer', plural=TRUE)` and 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Medium Tank', plural=TRUE)` 
+share the 2nd place. The 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Light Tank', plural=TRUE)` 
+underperform the other vehicle classes (as they should for all the players).
+
+## Players with < 45% WR at Tier VIII
+
+```{r fig_vehicle_classes_tier8_Relative_WR_sub45}
+WR.min <- 0
+WR.max <- .45
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+The `r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Heavy Tank', plural=TRUE)` 
+perform the best in the hands of less-skilled players, and the order of vehicle 
+classes is very much in line with the expectations. 
+
+## Players with 45-55% WR at Tier VIII
+
+```{r fig_vehicle_classes_tier8_Relative_WR_45_55}
+WR.min <- .45
+WR.max <- .55
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+The order stays the same for the average players. No surprises here. 
+
+## Players with 55-65% WR at Tier VIII
+
+```{r fig_vehicle_classes_tier8_Relative_WR_55_65}
+WR.min <- .55
+WR.max <- .65
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+For the 55-65% player segment the situation changes a bit and the 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Medium Tank', plural=TRUE)` 
+take the 2nd place. The poor performance of the 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Light Tank', plural=TRUE)` 
+in the hands of good players is not normal but a sign of severe underperformance of the tier VIII LTs. The 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Heavy Tank', plural=TRUE)`
+lead is so expected that it is easy take it for granted even though it would not have to be so. 
+
+## Players with 65%+ WR at Tier VIII
+
+```{r fig_vehicle_classes_tier8_Relative_WR_65plus}
+WR.min <- .65
+WR.max <- 1
+
+Nplayers <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  uniqueN(account_id)
+]
+
+res <- stats.tier[
+  DT_filter_enough_battles.rWR(stats.tier) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .("Relative WR" = mean(rWR), "Vehicle Class" = first(type), Players = .N),
+  by = .("Tank" = name)
+][Players > Nplayers * min_players.pct,
+  .("Relative WR" = mean(`Relative WR`)),
+  by = `Vehicle Class`
+]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) &
+#                            (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+x_name <- "Vehicle Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle(
+  "Relative WR by Vehicle Class",
+  paste(
+    "Tier", get_tier_roman(tierN), "Player WR",
+    percent_range_format(c(WR.min, WR.max))
+  )
+)
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+The `r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Heavy Tank', plural=TRUE)` 
+continue to rule and the 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Light Tank', plural=TRUE)`
+continue to struggle even in the hands of very good players. This is a clear sign of the 
+underperformance of the 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Light Tank', plural=TRUE)`. 
+
+# Tiers V-X
+
+Let's now look the situation across tiers V-X. The graph below plots the performance of 
+vehicle classes per tier. I am plotting the charts for all the players, 
+and WR 55-65% and WR 65%+ player categories. 
+
+## All players
+
+```{r fig_vehicle_classes_tiers6_10_Relative_WR}
+Nplayers <- stats.update.tiers[DT_filter_enough_battles.rWR(stats.update.tiers), uniqueN(account_id)]
+res <- stats.update.tiers[DT_filter_enough_battles.rWR(stats.update.tiers),
+  .(
+    "Relative WR" = mean(rWR),
+    "Players" = uniqueN(account_id),
+    "Vehicle Class" = first(type),
+    "Tier" = first(tier)
+  ),
+  by = name
+][Players >= Nplayers * min_players.pct]
+
+res <- res[, .("Relative WR" = mean(`Relative WR`)), by = .(Tier, `Vehicle Class`)][order(-`Relative WR`)]
+
+res[, "Tier - Class" := paste("Tier", get_tier_roman(Tier), `Vehicle Class`)]
+
+x_name <- "Tier - Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle("Relative WR by Vehicle Class", "Tiers V-X All players")
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+## Players with 55-65% WR
+
+```{r fig_vehicle_classes_tiers6_10_Relative_WR_55_65}
+WR.min <- .55
+WR.max <- .65
+
+Nplayers <- stats.update.tiers[DT_filter_enough_battles.rWR(stats.update.tiers) &
+  (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max), uniqueN(account_id)]
+res <- stats.update.tiers[
+  DT_filter_enough_battles.rWR(stats.update.tiers) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .(
+    "Relative WR" = mean(rWR),
+    "Players" = uniqueN(account_id),
+    "Vehicle Class" = first(type),
+    "Tier" = first(tier)
+  ),
+  by = name
+][Players >= Nplayers * min_players.pct]
+
+res <- res[, .("Relative WR" = mean(`Relative WR`)), by = .(Tier, `Vehicle Class`)][order(-`Relative WR`)]
+
+res[, "Tier - Class" := paste("Tier", get_tier_roman(Tier), `Vehicle Class`)]
+
+x_name <- "Tier - Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle("Relative WR by Vehicle Class", paste(
+  "Tiers V-X Player WR",
+  percent_range_format(c(WR.min, WR.max))
+))
+
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+## Players with 65%+ WR
+
+```{r fig_vehicle_classes_tiers6_10_Relative_WR_65plus}
+WR.min <- .65
+WR.max <- 1
+
+Nplayers <- stats.update.tiers[DT_filter_enough_battles.rWR(stats.update.tiers) &
+  (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max), uniqueN(account_id)]
+res <- stats.update.tiers[
+  DT_filter_enough_battles.rWR(stats.update.tiers) &
+    (WR.tier.maxed > WR.min) & (WR.tier.maxed <= WR.max),
+  .(
+    "Relative WR" = mean(rWR),
+    "Players" = uniqueN(account_id),
+    "Vehicle Class" = first(type),
+    "Tier" = first(tier)
+  ),
+  by = name
+][Players >= Nplayers * min_players.pct]
+
+res <- res[, .("Relative WR" = mean(`Relative WR`)), by = .(Tier, `Vehicle Class`)][order(-`Relative WR`)]
+
+res[, "Tier - Class" := paste("Tier", get_tier_roman(Tier), `Vehicle Class`)]
+
+x_name <- "Tier - Class"
+y_name <- "Relative WR"
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle("Relative WR by Vehicle Class", paste(
+  "Tiers V-X Player WR",
+  percent_range_format(c(WR.min, WR.max))
+))
+plot_col_discrete_1Y(res, title, update_ver, x_name, y_name,
+  y_pct = TRUE,
+  palette.fill = palette.vehicle_class, fill_var = "Vehicle Class"
+)
+```
+_N = `r Nplayers`_
+
+## Conclusions
+
+It should evident from the charts above how the 
+**heavy tanks overperform** in the game, and how the 
+**tank destroyers and light tanks underperform** with Tier IX light tanks 
+being a notable exception. The  differences between the ends of the spectrum are sizable.
+
+# How to re-balance the game again?
+
+*It is easier to point out issues than fix those*. And while each 
+tier (and tank) have to be balanced separately, the main re-balancing directions are clear:
+* **The heavy tanks deserve nerfs** across the tiers with tier IX being an exception. 
+* **The light tanks deserve buffs** with tier IX being an exception
+* **The tank destroyers deserve buffs** across the tiers
+
+The difficult part really is *how* to re-balance. 
+
+I personally think nerfing the **heavy tanks'** traverse and turret traverse speeds 
+should be the main ways to achieve  the balancing objectives. I think the WG's idea 
+of increasing the heavy tanks' HP pools was a good one and inline with the role of 
+the heavy tanks. Slightly reducing the mobility of the heavy tanks would enforce 
+the differences between medium and heavy tanks and suit their respective roles. 
+
+For the **tank destroyers**, I would probably buff camo while stationary and DPM. 
+Buffing TDs, especially the campy, big alpha ones is a controversial topic since 
+many TDs are already hugely popular despite their poor performance. Players just 
+love the big-alpha tanks for the occasional giggles. Buffing those could  change 
+the meta towards more "campy" direction. And this is where the MM's *vehicle class 
+matching* rules can come handy. Limiting the number of TDs entering the battles 
+would increase the queuing times for those while keeping the battles clean from 
+negative camping-effect of the TDs. This is the only vehicle class matching rule 
+I personally support. Probably three TDs per team sounds like the right limit - 
+unless it becomes a norm. 
+
+Buffing the **light tanks** is harder. Some of the light tanks deserve engine 
+buffs for better acceleration. Also improved view range could improve the performance
+ while supporting the unique role of the light tanks.
+
+Having said all this, I am certain WG's balancing department has far more 
+competence on this area. They know what they are doing even though commercial 
+motives sometimes overrule their balancing rulebook 
+(`r md_link_tank(tank_names='Annihilator', update=update_ver)`, 
+`r md_link_tank(tank_names='Smasher', update=update_ver)`, 
+`r md_link_tank(tank_names='Gravedigger', update=update_ver)`, etc.). 
+The good news is that the Grille line tank destroyers are about to receive 
+buffs in update 7.8 in the form of new consumables (especially *Spall Liner*). 
+So I believe WG is clearly aware of the current imbalances.
+
+I hope you enjoyed this longer-than-intended read. Happy tanking and stay safe! 

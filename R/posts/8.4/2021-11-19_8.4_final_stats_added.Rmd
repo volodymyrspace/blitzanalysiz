@@ -1,0 +1,152 @@
+---
+title: "Update 8.4 final stats added "
+linktitle: "2021-11-19 Update 8.4 final stats added"
+date: `r today("UTC")`
+publishdate: 2021-11-19
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "post", "8.4" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = 'svglite', fig.ext = 'svgz');
+update_ver <- '8.4'
+stopifnot(all(exists("stats.update"), update_ver == update))
+res <- stats.update[, .(Battles=sum(all.battles), Players=uniqueN(account_id))]
+stats.update.perf <- get_stats_tank_perf.rWR(stats.update)
+```
+
+Final stats for `r md_link_update(update=update_ver)` have been added. 
+
+* In total, there were `r auto_format(res$Battles)` battles by `r auto_format(res$Players)` 
+players recorded in the database during the `r md_link_update(update=update_ver)`.
+
+New  (`r md_link_tier_premium_tank(update=update_ver, tier=8, link_text="premium")`) 
+tanks have entered the 
+`r md_link(update=update_ver, link_text="TOP20 best performing tanks", rel_link="#highest-relative-wr")` list. 
+
+* Thanks to the recent promotion, `r md_link_tank(tank_names='Somua SM', update=update_ver)` 
+has entered the battlefield in numbers and taken the 3rd spot. High burst damage combined with 
+ultra-strong turret, good gun depression and decent mobility - what could go wrong?
+
+* The usual suspects `r md_link_tank(tank_names='T28 Concept', update=update_ver)` 
+and `r md_link_tank(tank_names='Object 252U', update=update_ver)` have taken the 
+the top spots again. 
+
+* Rather unpopular `r md_link_tank(tank_names='AT 15A', update=update_ver)` has 
+dropped to 17th. I think its low player count make its relative WR stats more unreliable 
+with high   update-to-update variation. 
+
+* Dead-ugly fake-tank `r md_link_tank(tank_names='Dreadnought', update=update_ver)` 
+(a buffed fantasy-copy of `r md_link_tank(tank_names='Churchill Gun Carrier', update=update_ver)` 
+aka *Coffin on Tracks*) was 4th. 
+
+* `r md_link_tank(tank_names='IS-7', update=update_ver)` received a nice buff 
+during "PBR remodeling"and it is really good now and actually the best performing 
+Tech-Tree tank (8th). 
+
+```{r fig_tanks_top_RelativeWR}
+plot_relativeWR(stats = stats.update.perf, update = update_ver);
+```
+
+## Polish heavy tanks
+
+`r md_link_update(update=update_ver, capital_1st=TRUE)` introduced Polish heavy 
+tanks. I have reached tier IX with those and I think all the tanks so far are fine tanks. 
+Good armor, good mobility, OK gun-depression and good alpha. However, the stats of the Polish 
+heavies look *"meh"* at the best. However, usually the first update's stats underestimate 
+a bit the performance of new tank lines. This might be due to many players still grinding 
+the tanks with stock modules and below-100% crews. I try to take the grind-time into consideration, 
+but there is no certain way to filter out non-maxed out tanks. I expect the stats to improve a 
+bit in next update. 
+
+### Tier VI 40TP Habicha
+
+The `r md_link_tier(update=update_ver, tier=6)` 
+`r md_link_tank(tank_names='40TP Habicha', update=update_ver)` 
+was a nice tank in my view, but based on stats it was the 3rd worst 
+performing `r md_link_tier_tank_type(update=update_ver, tier=6, tank_type="Heavy Tank", append_text="heavy tank")`. 
+I played only 17 battles with it (boosters, yeah) and got [70% WR](https://www.blitzstars.com/player/eu/Jylpah/tank/8065). 
+I have too few battles to really say anything of my own performance with it, but it felt OK - or I got carried :-)  
+
+```{r fig_tanks_tier6_heavy_RelativeWR}
+tank_type  	<- 'Heavy Tank'
+tierN 			<- 6
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
+```
+
+### Tier VII 45TP Habicha
+
+The `r md_link_tier(update=update_ver, tier=7)` 
+`r md_link_tank(tank_names='45TP Habicha', update=update_ver)` 
+was also a nice tank in my view, but based on stats it was the 2nd worst 
+performing `r md_link_tier_tank_type(update=update_ver, tier=7, tank_type="Heavy Tank", append_text="heavy tank")`. 
+I played 52 battles with it and did OK, although I felt fighting with windmills (teams) 
+and reached only [61% WR](https://www.blitzstars.com/player/eu/Jylpah/tank/8321).   
+
+```{r fig_tanks_tier7_heavy_RelativeWR}
+tank_type  	<- 'Heavy Tank'
+tierN 			<- 7
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, 
+                                tank_type = tank_type, tier = tierN)
+```
+
+### Tier VIII 53TP Markowskiego
+
+The `r md_link_tier(update=update_ver, tier=8)` 
+`r md_link_tank(tank_names='53TP Markowskiego', update=update_ver)` was again
+a really nice tank in my view, but based on stats it is just an average performer 
+among `r md_link_tier_tank_type(update=update_ver, tier=8, tank_type="Heavy Tank")`.
+I played 82 battles with it and reached [64% WR](https://www.blitzstars.com/player/eu/Jylpah/tank/7809)
+with it that is pretty average for me.
+
+```{r fig_tanks_tier8_heavy_RelativeWR}
+tank_type  	<- 'Heavy Tank'
+tierN 			<- 8
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, 
+                                tank_type = tank_type, tier = tierN)
+```
+
+
+### Tier IX 50TP Tyszkiewicza
+
+The `r md_link_tier(update=update_ver, tier=9)` 
+`r md_link_tank(tank_names='50TP Tyszkiewicza', update=update_ver)` 
+is another good tank in my view, but based on stats it is an average performer 
+among `r md_link_tier(update=update_ver, tier=9)`. I have  played so 
+far 110 battles with it and standing at [60% WR](https://www.blitzstars.com/player/eu/Jylpah/tank/7553) 
+with it. The Gods of MM are asking more sacrifices from my wallet.
+
+```{r fig_tanks_tier9_heavy_RelativeWR}
+tank_type  	<- 'Heavy Tank'
+tierN 			<- 9
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, 
+                                tank_type = tank_type, tier = tierN)
+```
+
+### Tier X 60TP Lewandowskiego
+
+I have not played the `r md_link_tier(update=update_ver, tier=10)` 
+`r md_link_tank(tank_names='60TP Lewandowskiego', update=update_ver)` yet,
+but it does not seem to be so fearsome enemy on the battlefield. Yes, it has a great turret, 
+but I have *felt* it is pretty balanced. However, based on stats it seems to be a below-average 
+performer among `r md_link_tier(update=update_ver, tier=10)`. 
+
+```{r fig_tanks_tier10_heavy_RelativeWR}
+tank_type  	<- 'Heavy Tank'
+tierN 			<- 10
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, 
+                                tank_type = tank_type, tier = tierN)
+```
+Let's see how the update 8.5 stats turn out once those are out. 
+It is hard for me to believe this line is performing so poorly since I think the tanks are all fine. 
+
+*That's all this time*

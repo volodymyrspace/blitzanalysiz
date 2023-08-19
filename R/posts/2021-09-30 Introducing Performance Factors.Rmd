@@ -1,0 +1,906 @@
+---
+title: "Introducing Performance Factors"
+linktitle: "2021-09-30 Introducing Performance Factors"
+date: `r today("UTC")`
+publishdate: 2021-09-30
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: page_weight
+alwaysopen: false
+hidden: true
+tags: [ "post" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = c('svglite', 'png'));
+update <- "8.3"
+stats.update <- load_tank_stats_update(update)
+stats.perf <- get_stats_tank_perf(stats.update)  # removes sub5k MM by default
+
+```
+
+## DELETE
+
+\\(x = {-b \pm \sqrt{b^2-4ac} \over 2a}.\\)
+
+## TODO
+
+- Tank perf per player skill level
+- Is it possible to iterate that? Players would move between buckets. 
+
+## DELETE
+
+Performance Factors is a method for comparing tanks’ (and players’) relative strength to each other. The core idea of the Performance Factor model is to _estimate_ player’s performance in a tank with a simple model:
+
+
+$$\begin{equation} Performance_{ij} = player_i * tank_j \tag{1}\end{equation}$$
+
+And then to find such values for \\(player_i\\) and \\(tank_j\\) which estimate the observed \\(Results_{ij}\\) as accurately as possible:
+
+
+$$\begin{equation} Results_{ij} \sim Battles_{ij}*Performance_{ij} = Battles_{ij} * player_i * tank_j \tag{2} \end{equation}$$
+
+Where, 
+
+\\(player_i\\) is (average) skill of a player i in all the tanks 
+\\(tank_j\\) is (average) performance of tank j for all the players
+\\(Results_{ij}\\) is observed (known) outcome (e.g. wins, total damage) of \\(player_i\\) in a \\(tank_j\\) over \\(Battles_{ij}\\) number of battles (known). 
+
+In other words, the model assumes each player has a skill \\(player_i\\) that is the same for all the tanks the player plays, and that each tank has performance \\(performance_j\\) that is the same for all the players. Player’s performance with a tank is therefore a _product_ of the player's skill and the tank’s performance which are both independent of each other. The model is naturally a simplification of the reality, but every model is. The simplicity of the model also makes it easier to understand. There is a saying that "every player is as good as his/her average battles are" and similarly "every tank is as good as the tank is in average". 
+
+I will present the mathematical details on section **Mathematical formulation**, but in a nutshell the model tries to estimate the \\(Results_{ij}\\) as accurately as it can (equation 2). Let \\(\epsilon_{ij}\\) be the error term for the model’s estimate of the \\(Results_{ij}\\):
+
+$$\begin{equation} \epsilon_{ij} = Results_{ij} - Battles_{ij} * player_i * tank_j \tag{3}\end{equation}$$
+
+
+The parameters for \\(player_i\\) and \\(tank_j\\) are selected so that the squared-sum of the \\(\epsilon_{ij}\\) error terms is minimized. This is called [least-squares method](https://en.wikipedia.org/wiki/Least_squares). The calculation of the values for \\(player_i\\) and \\(tank_j\\) is rather tedious. I will present the mathematical details on section **Mathematical formulation**, but let me first present the results of the model. 
+
+```{r calc_pf_t10,message=FALSE}
+tierN = 10 
+stats.perf.10 <- stats.perf[tier == tierN]
+
+# calc PF
+dat.10 <- pf_prep(stats.perf.10, max.battles = 0.95)
+tic()
+res.10 <- pf_est_factors(dat.10, mode="best", verbose=FALSE)
+pf.time <- toc(quiet = TRUE)
+pf.time <- pf.time$toc - pf.time$tic
+
+battles <- dat.10$battles
+results <- dat.10$results
+
+player.skill <- res.10$player.skill
+tank.perf    <- res.10$tank.perf
+
+results.est <- pf_estimated_res(player.skill, tank.perf, battles)
+
+battles.v <- c(battles[battles>0])
+results.v <- c(results[battles>0])
+results.est.v <- c(results.est[battles>0])
+results.err <- results.v - results.est.v
+
+results.err.mean <- mean(abs(results.err))
+# [1] 2.267127
+results.err.median <- median(abs(results.err))
+# [1] 1.776591
+
+results.mean <- mean(results.v)
+results.median <- median(results.v)
+
+results.err.mean.rel   <- results.err.mean   / results.mean
+results.err.median.rel <- results.err.median / results.median
+results.err.median.rel.100btls <- median(abs(results.err[battles.v>= 100])) / median(results.v[battles.v>= 100])
+
+MSE <- res.10$MSE
+std_err <- sqrt(MSE)
+std_err.rel <- std_err / (sum(results)/sum(battles>0))
+
+## TBD
+# -debug extreme errors
+
+## R2-adjusted
+p <- sum(dim(battles))
+n <- sum(battles>0) 
+
+R2 <- res.10$`R-squared`
+R2.adj <- pf_R2.adj(player.skill, tank.perf, battles, results)
+
+```
+
+# Model fit
+
+Let’s first discuss how “good” / accurate results the Performance Factor model gives. In statistics the goodness of fit can be measured using [R<sup>2</sup>  (R-squared)](https://en.wikipedia.org/wiki/Coefficient_of_determination) and [R<sup>2</sup>-adjusted](https://en.wikipedia.org/wiki/Coefficient_of_determination#Adjusted_R2). 
+
+The algorithm to solve the optimal parameters for is \\(player_i\\) and \\(tank_j\\) numerical. Therefore the goodness of fit partially depends on the convergence criteria - that is how long to continue the optimization of the values for \\(player_i\\) and \\(tank_j\\). When running the algorithm until R’s 32-bit float ran out of precision, I reached the R<sup>2</sup> of `r signif(R2, digits=4)`, R<sup>2</sup>-adjusted `r signif(R2.adj, digits=4)` and median relative error `r percent_format(results.err.median.rel)` (`r percent_format(results.err.median.rel.100btls)` when there are 100+ battles). These are all very good numbers. The simple model estimates the player performance very accurately despite neglecting things like tanks with high skill-floor or low skill-ceiling (more about those later).
+
+```{r errors_hist}
+battles.lim <- 100
+res <- as.data.table(results.err[battles.v >= battles.lim] / results.v[battles.v >= battles.lim])
+names(res) <- c('Relative error %')
+
+
+plot_histogram(res, 'Relative error', update=update, x_name = 'Relative error %', y_name = '% Share', 
+               binwidth = .02, x_breaks = seq(-1,1, .05), y_step = 0.025, x_lims = c(-0.4, 0.4),
+               relative = TRUE, 
+               x_pct = TRUE, y_pct = TRUE, median = FALSE, mean=FALSE, 
+               subtitle = paste('Update', update, ', Tier X, 100+ battles'))
+```
+
+# Computational performance
+
+The algorithm is a numerical iteration and its accuracy (and computational performance) depends on the convergence criteria (=when the results are *good-enough*) and the precision of the underlying calculation engine. I have achieved good-enough results just after a few iterations and depending on the size of the data set it took 30-80 iterations to reach maximum accuracy with R’s 32-bit calculation engine. With a data set of `r signif(nrow(stats.perf.10), 2)`` rows (player-tank combos) one iteration took ~0.1 sec and reaching maximum accuracy took ´r signif(pf.time, digits=1)´ secs with my old i7-4770K CPU.  This calculated player/tank factors based on battles of one tier. Not exactly fast, but the 95% of the time goes on iterations with minuscule impact on the results. 
+
+
+# Results
+
+To the results. Which are the best tanks? Well, the usual suspects. Do the results differ from Relative WR method? Not much. 
+
+**About interpreting the results**: The factors for tank performance \\(tank_j\\) are scaled so that the average is 1 (100%). A value higher than that (e.g. 110%)  indicates players on average reach higher WR with the tank vs. their performance in a average tank (e.g. 66% instead of 60% in an average tank). Values below 100% tell the tank performs below average. The bigger the number the better tank. The model will also give factors for player skill (\\(player_i\\)) indicating how well they perform in an  average tank. The bigger the number the better player. If a player plays mostly OP tanks, it is likely the player's skill factor is below is average WR. 
+
+## Tier X
+
+The TOP 5 [tier X tanks](/update/`r update`/tanks/10/) by (average) Performance Factors are:
+
+```{r table_tier10_top5, echo = FALSE}
+
+res <- pf_get_tank_perf(res.10, topN = 5)
+res[, tank.perf:= percent_format(tank.perf, digits=1)]
+names(res) <- c('Tank ID', 'Tank', 'Tank Performance')
+md_table(res[, c(2,3)], update_ver = update)
+```
+
+These are average results over the player base and subject to sampling issues caused by tanks' different player bases. I will study later how e.g. [stratified sampling](https://en.wikipedia.org/wiki/Stratified_sampling) could be applied to the Tank Performance Factors.  
+
+```{r tier_X_pf}
+x_name = 'Tank'
+y_name = 'Tank Performance Factor'
+topN = 20
+
+res.pf <- pf_get_tank_perf(res.10)
+
+res.rWR <- stats.perf.10[ DT_filter_enough_battles.rWR(stats.perf.10),  
+                               .('Average WR'   = mean(WR), 
+                                 'Relative WR'  = mean(rWR),
+                                 'Average Damage' = mean(avg_dmg),
+                                 'Player WR at Tier' = mean(WR.tier.maxed), 
+                                 'Players'      = uniqueN(account_id),
+                                 'Battles/Player' = mean(all.battles), 
+                                 'Vehicle Class'= first(type), 
+                                 'Premium'      = first(is_premium),
+                                 'tank_id'      = first(tank_id)),
+                               by=name ]
+
+res <- merge(res.pf, res.rWR, by=c('tank_id', 'name'), all=TRUE)
+setnames(res, c('name', 'tank.perf'), c('Tank', 'Tank Performance Factor'))
+res <- prep_plot_tank(res, y_name)
+
+res.plot.pf <- head(res[order(-`Tank Performance Factor`)], n=topN)
+
+
+res.plot.pf <- prep_plot_tank(res.plot.pf, y_name)
+title <- get_plot_title_top_tanks(y_name, top=TRUE, topN = topN)
+
+
+plot_level_discrete(res.plot.pf, title, update, x_name, y_name, 
+                    shape_var = 'Vehicle Class', fill_var = 'Tank type',
+                    y_pct = TRUE, y_breaks = seq(1, 1.1, 0.01), 
+                    top = TRUE, tier = tierN, palette.colors = palette.premium)
+```
+
+### Tier X Heavy tanks
+
+Are the Tank Performance Factors vastly different from the tanks' relative WR? Nope. The differences are minor and that is good news since we know Relative WR *is* a good measure. The plot below shows the [tier X heavy tanks'](/update/`r update`/tanks/10/heavy-tanks/) Relative WR on X-axis and Tank Performance Factors on Y-axis. The data points form a fairly straight line indicating strong correlation between the measures. There are couple of cases where the measures disagree, but mostly the disagreements are insignificant and likely within error margins. 
+
+
+```{r pf_vs_rWR_t10_HT}
+tierN <- 10
+vehicle_class <- 'Heavy Tank'
+title <- get_plot_title_subtitle('Tank Performance Factors vs. Relative WR', paste0(vehicle_class, 's'))
+subtitle <- get_subtitle(update, tier = tierN)
+
+plot_scatter(res[`Vehicle Class`== vehicle_class], 
+             title, update, 
+             'Relative WR', 'Tank Performance Factor', 
+             x_pct = TRUE, y_pct=TRUE, 
+             y_breaks=seq(0.9, 1.1, 0.01), x_breaks=seq(-0.1, 0.1, 0.005), 
+             palette.colors = palette.premium, 
+             color_var = 'Tank type', 
+             shape_var='Vehicle Class', 
+             names = 'Tank', 
+             subtitle = subtitle)
+
+```
+There are couple of cases where Relative WR and Tank Performance Factors give different results: 
+
+* `r md_link_tank(tank_names='VK 72.01 (K)', update=update)` vs. `r md_link_tank(tank_names='AMX M4 mle. 54', update=update)`
+* `r md_link_tank(tank_names='IS-4', update=update)` vs. `r md_link_tank(tank_names='Maus', update=update)`
+* `r md_link_tank(tank_names='WZ-111 model 5A', update=update)` vs. `r md_link_tank(tank_names='Super Conqueror', update=update)`
+
+The differences are rather minor though. 
+
+### Tier X Medium tanks
+
+```{r pf_vs_rWR_t10_MT}
+tierN <- 10
+vehicle_class <- 'Medium Tank'
+title <- get_plot_title_subtitle('Tank Performance Factors vs. Relative WR', paste0(vehicle_class, 's'))
+subtitle <- get_subtitle(update, tier = tierN)
+min.battles = 50
+
+plot_scatter(res[`Vehicle Class`== vehicle_class], 
+             title, update, 
+             'Relative WR', 'Tank Performance Factor', 
+             x_pct = TRUE, y_pct=TRUE, 
+             y_breaks=seq(0.9, 1.1, 0.01), x_breaks=seq(-0.1, 0.1, 0.005), 
+             palette.colors = palette.premium, 
+             color_var = 'Tank type', 
+             shape_var='Vehicle Class', 
+             names = 'Tank', 
+             subtitle = subtitle)
+```
+
+The results for Relative WR and Tank Performance Factors are also aligned also for [Tier X medium tanks](/update/`r update`/tanks/10/medium-tanks/). There are couple of minor differences though:
+
+* `r md_link_tank(tank_names='T-62A', update=update)` vs. `r md_link_tank(tank_names='STB-1', update=update)`
+* `r md_link_tank(tank_names='M48 Patton', update=update)` vs. `r md_link_tank(tank_names='Object 907', update=update)`
+
+The differences are not big either for the mediums. The `r md_link_tank(tank_names='Object 907', update=update)` is a rare new premium so data for it is not that accurate. Let's compare `r md_link_tank(tank_names='T-62A', update=update)` and `r md_link_tank(tank_names='STB-1', update=update)`.
+
+#### T-62A vs. STB-1
+
+Comparison between `r md_link_tank(tank_names='T-62A', update=update)` and `r md_link_tank(tank_names='STB-1', update=update)` among the players who have at least `r min.battles` battles in both the tanks shows how `r md_link_tank(tank_names='T-62A', update=update)` seems to perform bit better for players with low or high WR at the tier, despite `r md_link_tank(tank_names='T-62A', update=update)` having lower relative WR than `r md_link_tank(tank_names='STB-1', update=update)` on average. 
+
+```{r WR_T_62A_STB_1,message=FALSE,warning=FALSE,echo=FALSE}
+tank1 <- 'T-62A'
+tank2 <- 'STB-1'
+
+tanks.compare = c(tank1, tank2)
+
+
+Measure='WR'
+min.battles <- 30
+min.players <- 25
+tank1.players <- as.character(stats.perf.10[(all.battles >= min.battles) & (name == tank1), account_id ])
+tank2.players <- as.character(stats.perf.10[(all.battles >= min.battles) & (name == tank2), account_id ])
+tank12.players <- base::intersect(tank1.players, tank2.players)
+
+tank1.WR <- paste(tanks.compare[1], 'WR')
+tank2.WR <- paste(tanks.compare[2], 'WR')
+
+res1 <- stats.perf.10[account_id %in% as.integer64(tank12.players) & 
+                        (name == tanks.compare[1]), 
+                      .(account_id, WR, WR.tier.maxed)] 
+
+res1[, c(tank1.WR, 'WR at Tier') := list(WR, WR.tier.maxed) ]
+res1[,c('WR','WR.tier.maxed') := NULL]
+
+res2 <- stats.perf.10[account_id %in% as.integer64(tank12.players) & 
+                        (name == tanks.compare[2]), 
+                      .(account_id, WR)]
+res2[, c(tank2.WR) := WR ]
+res2[, 'WR':= NULL]
+
+res12 <- merge(res1, res2, by='account_id')
+WR.delta.var <- paste(paste(tanks.compare, collapse = ' - '), 'WR')
+res12[, (WR.delta.var) := get(tank1.WR) - get(tank2.WR)]
+
+n_players <- dim(res12)[1]
+
+title <- paste("Players' WR", tank1, 'vs.', tank2)
+
+plot_average_Y(res12, title, update, 
+               'WR at Tier', WR.delta.var, avg_name = 'Difference', fill_var = 'WR' , 
+               tier = tierN, y_pct = TRUE, min_samples = min.players, 
+               bin_breaks = buckets.WR.10.narrow, y_steps = 10)
+
+```
+
+When taking the player numbers in each WR bracket into consideration it 
+
+
+```{r table_tier10_T62A_STB1, echo = FALSE}
+res.comp <- res12[, .(Players = .N, 'Avg WR difference' = mean(`T-62A - STB-1 WR`)), 
+                  by=.('WR at Tier'=cut(`WR at Tier`, breaks=buckets.WR.10.narrow))][order(`WR at Tier`)]
+
+buckets <- as.integer(res.comp[, `WR at Tier`])
+buckets.str <- percent_range_format(buckets.WR.10.narrow)[buckets]
+res.comp[, 'WR at Tier' := buckets.str]
+
+md_table(res.comp[Players >= min.players], update_ver = update, cols.no_format = 'WR at Tier')
+```
+
+
+```{r rWR_per_skill_level_T_62A_STB_1}
+perf_measure <- 'Relative WR'
+by_measure <- 'WR at Tier'
+
+# Colors
+palette.sel <- c(2,7)
+palette.fill <- palette_update(palette.graphs[palette.sel], keys = tanks.compare)
+palette.annotate <- palette_update(palette.lines[palette.sel], keys = tanks.compare)
+
+res.comp <- stats.perf.10[ (name %in% tanks.compare) & DT_filter_enough_battles.rWR(stats.perf.10), 
+                          .('WR at Tier' = WR.tier.maxed, 
+                            'Relative WR' = rWR), 
+                          by=.(Player = account_id, Tank = name)]
+
+title.tier <- paste0('Tier ', get_tier_roman(tierN), 'tanks')
+
+title <- get_plot_title_perf_by(paste(tanks.compare, collapse = " vs. "), perf_measure, 'WR at Tier')
+
+plot_average_Y(res.comp, title, update, by_measure, perf_measure, 
+               fill_var ='Tank', fill_elems = tanks.compare, 
+               bin_breaks = buckets.WR.10.narrow,
+               x_pct = TRUE, y_steps = 10, y_pct = TRUE,
+               palette.fill = palette.fill,
+               palette.annotate = palette.annotate,
+               mean = TRUE, tier = tierN)
+```
+
+Between `r md_link_tank(tank_names='T-62A', update=update)` and `r md_link_tank(tank_names='STB-1', update=update)`, the Tank Performance Factor model seems to give more true results than Relative WR. 
+
+### Tier X Tank destroyers
+
+
+```{r pf_vs_rWR_t10_TD}
+tierN <- 10
+vehicle_class <- 'Tank Destroyer'
+title <- get_plot_title_subtitle('Tank Performance Factors vs. Relative WR', paste0(vehicle_class, 's'))
+subtitle <- get_subtitle(update, tier = tierN)
+
+plot_scatter(res[`Vehicle Class`== vehicle_class], 
+             title, update, 
+             'Relative WR', 'Tank Performance Factor', 
+             x_pct = TRUE, y_pct=TRUE, 
+             y_breaks=seq(0.9, 1.1, 0.01), x_breaks=seq(-0.1, 0.1, 0.005), 
+             palette.colors = palette.premium, 
+             color_var = 'Tank type', 
+             shape_var='Vehicle Class', 
+             names = 'Tank', 
+             subtitle = subtitle)
+```
+
+For tier X tank destroyers, the models disagree between:
+
+* `r md_link_tank(tank_names='FV217 Badger', update=update)` and `r md_link_tank(tank_names='Object 263', update=update)`
+* `r md_link_tank(tank_names='Ho-Ri Type III', update=update)` and `r md_link_tank(tank_names='WZ-113G FT', update=update)`
+
+
+### FV217 Badger vs. Object 263
+
+More careful analysis of  `r md_link_tank(tank_names='FV217 Badger', update=update)` and `r md_link_tank(tank_names='Object 263', update=update)` performance tells the obvious.  `r md_link_tank(tank_names='FV217 Badger', update=update)` performs relatively better for less-skilled players thanks to its good armor where as `r md_link_tank(tank_names='Object 263', update=update)` seems to perform bit better for better players. But in practical terms the differences are minor and likely go within error margins.  
+
+```{r rWR_per_skill_level_FV217_Obj263}
+tank1 <- 'FV217 Badger'
+tank2 <- 'Object 263'
+
+tanks.compare = c(tank1, tank2)
+
+perf_measure <- 'Relative WR'
+by_measure <- 'WR at Tier'
+
+# Colors
+palette.sel <- c(2,7)
+palette.fill <- palette_update(palette.graphs[palette.sel], keys = tanks.compare)
+palette.annotate <- palette_update(palette.lines[palette.sel], keys = tanks.compare)
+
+res.comp <- stats.perf.10[ (name %in% tanks.compare) & DT_filter_enough_battles.rWR(stats.perf.10), 
+                          .('WR at Tier' = WR.tier.maxed, 
+                            'Relative WR' = rWR), 
+                          by=.(Player = account_id, Tank = name)]
+
+title.tier <- paste0('Tier ', get_tier_roman(tierN), 'tanks')
+
+title <- get_plot_title_perf_by(paste(tanks.compare, collapse = " vs. "), perf_measure, 'WR at Tier')
+
+plot_average_Y(res.comp, title, update, by_measure, perf_measure, 
+               fill_var ='Tank', fill_elems = tanks.compare, 
+               bin_breaks = buckets.WR.10.narrow,
+               x_pct = TRUE, y_steps = 10, y_pct = TRUE,
+               palette.fill = palette.fill,
+               palette.annotate = palette.annotate,
+               mean = TRUE, tier = tierN, min_samples = min.players)
+```
+
+### Ho-Ri Type III vs. WZ-113G FT
+
+Both the `r md_link_tank(tank_names='Ho-Ri Type III', update=update)` and `r md_link_tank(tank_names='WZ-113G FT', update=update)` are rather unpopular tanks. Both have decent frontal armor, but `r md_link_tank(tank_names='Ho-Ri Type III', update=update)` has better mobility and 
+
+```{r rWR_per_skill_level_HoRi_WZ113G_FT}
+tank1 <- 'Ho-Ri Type III'
+tank2 <- 'WZ-113G FT'
+
+tanks.compare = c(tank1, tank2)
+
+perf_measure <- 'Relative WR'
+by_measure <- 'WR at Tier'
+
+# Colors
+palette.sel <- c(2,7)
+palette.fill <- palette_update(palette.graphs[palette.sel], keys = tanks.compare)
+palette.annotate <- palette_update(palette.lines[palette.sel], keys = tanks.compare)
+
+res.comp <- stats.perf.10[ (name %in% tanks.compare) & DT_filter_enough_battles.rWR(stats.perf.10), 
+                          .('WR at Tier' = WR.tier.maxed, 
+                            'Relative WR' = rWR), 
+                          by=.(Player = account_id, Tank = name)]
+
+title.tier <- paste0('Tier ', get_tier_roman(tierN), 'tanks')
+
+title <- get_plot_title_perf_by(paste(tanks.compare, collapse = " vs. "), perf_measure, 'WR at Tier')
+
+plot_average_Y(res.comp, title, update, by_measure, perf_measure, 
+               fill_var ='Tank', fill_elems = tanks.compare, 
+               bin_breaks = buckets.WR.10.narrow,
+               x_pct = TRUE, y_steps = 10, y_pct = TRUE,
+               palette.fill = palette.fill,
+               palette.annotate = palette.annotate,
+               mean = TRUE, tier = tierN, min_samples = min.players)
+```
+
+### VK 72.01 (K) vs. IS-4
+
+First of all, I am surprised to see `r md_link_tank(tank_names='VK 72.01 (K)', update=update)` this high in the top [tier X heavy tank](/update/`r update`/tanks/10/heavy-tanks/) listing, but it seems both Relative WR and Tank Performance Factor method are pretty well aligned, so I have to believe data over my *gut-feeling*. 
+
+```{r WR_VK72_IS4,message=FALSE,warning=FALSE,echo=FALSE}
+tank1 <- 'VK 72.01 (K)'
+tank2 <- 'IS-4'
+
+tanks.compare = c(tank1, tank2)
+
+Measure='WR'
+min.battles = 50
+tank1.players <- as.character(stats.perf.10[(all.battles >= min.battles) & (name == tank1), account_id ])
+tank2.players <- as.character(stats.perf.10[(all.battles >= min.battles) & (name == tank2), account_id ])
+tank12.players <- base::intersect(tank1.players, tank2.players)
+
+tank1.WR <- paste(tanks.compare[1], 'WR')
+tank2.WR <- paste(tanks.compare[2], 'WR')
+
+res1 <- stats.perf.10[account_id %in% as.integer64(tank12.players) & 
+                        (name == tanks.compare[1]), 
+                      .(account_id, WR, WR.tier.maxed)] 
+
+res1[, c(tank1.WR, 'WR at Tier') := list(WR, WR.tier.maxed) ]
+res1[,c('WR','WR.tier.maxed') := NULL]
+
+res2 <- stats.perf.10[account_id %in% as.integer64(tank12.players) & 
+                        (name == tanks.compare[2]), 
+                      .(account_id, WR)]
+res2[, c(tank2.WR) := WR ]
+res2[, 'WR':= NULL]
+
+res12 <- merge(res1, res2, by='account_id')
+WR.delta.var <- paste(paste(tanks.compare, collapse = ' - '), 'WR')
+res12[, (WR.delta.var) := get(tank1.WR) - get(tank2.WR)]
+
+n_players <- dim(res12)[1]
+```
+
+Performance Factor method considers `r md_link_tank(tank_names='VK 72.01 (K)', update=update)` slightly better than `r md_link_tank(tank_names='IS-4', update=update)`, where as Relative WR says other way round. Out of the players (N=`r n_players`) who have played both the tanks, `r md_link_tank(tank_names='VK 72.01 (K)', update=update)` seems to perform bit better for all but players with very high WR at [tier X](/update/`r update`/tanks/10/) (70%+). But the number of samples (N) is very low here. There are only two (2) players with enough battles in both the tanks and 70%+ WR at [tier X](/update/`r update`/tanks/10/). 
+
+
+```{r WR_VK72_IS4_scatter,message=FALSE,warning=FALSE,echo=FALSE}
+breaks <- seq(0.25, 0.85, 0.05)
+title <- paste("Players' WR", tank1, 'vs.', tank2)
+plot_scatter(res12, title, update, 
+             tank1.WR, tank2.WR, 
+             x_pct = TRUE, y_pct=TRUE, 
+             x_breaks=breaks, y_breaks=breaks, x_lims=TRUE, y_lims=TRUE,   
+             size=1, smooth = 'lm', formula= y~x+0, averages = TRUE)
+
+```
+
+
+```{r WR_VK72_IS4_delta,message=FALSE,warning=FALSE,echo=FALSE}
+
+plot_average_Y(res12, title, update, 
+               'WR at Tier', WR.delta.var, avg_name = 'Difference', fill_var = 'WR' , 
+               tier = tierN, y_pct = TRUE, min_samples = 0, 
+               bin_breaks = buckets.WR.narrow, y_steps = 10)
+
+```
+
+
+```{r rWR_per_skill_level_VK72_IS4}
+perf_measure <- 'Relative WR'
+by_measure <- 'WR at Tier'
+
+# Colors
+palette.sel <- c(2,7)
+palette.fill <- palette_update(palette.graphs[palette.sel], keys = tanks.compare)
+palette.annotate <- palette_update(palette.lines[palette.sel], keys = tanks.compare)
+
+res <- stats.perf.10[ (name %in% tanks.compare) & DT_filter_enough_battles.rWR(stats.perf.10), 
+                          .('WR at Tier' = WR.tier.maxed, 
+                            'Relative WR' = rWR), 
+                          by=.(Player = account_id, Tank = name)]
+
+title.tier <- paste0('Tier ', get_tier_roman(tierN), 'tanks')
+
+title <- get_plot_title_perf_by(paste(tanks.compare, collapse = " vs. "), perf_measure, 'WR at Tier')
+
+plot_average_Y(res, title, update, by_measure, perf_measure, 
+               fill_var ='Tank', fill_elems = tanks.compare, 
+               bin_breaks = buckets.WR.narrow,
+               x_pct = TRUE, y_step = 0.01, y_pct = TRUE,
+               palette.fill = palette.fill,
+               palette.annotate = palette.annotate,
+               mean = TRUE, tier = tierN)
+```
+
+
+
+```{r fig_player_WR_histogram_VK72_IS4}
+res <- stats.perf.10[ (name %in% tanks.compare), 
+                            .('WR at Tier' = WR.tier.maxed, 
+                              Tank = name)]
+
+plot_histogram(res, 'Player WR at tier X', update, x_name = 'WR at Tier', y_name = '% of Players', 
+               fill_var = 'Tank', 
+               palette.fill = palette.fill, 
+               palette.annotate = palette.annotate, 
+               binwidth = .01, x_step = .05, y_breaks = seq(0,1, 0.01), relative = TRUE, 
+               x_pct = TRUE, y_pct = TRUE, median = FALSE )
+
+```
+
+
+### Maus vs. IS-4
+
+
+`r md_link_tank(tank_names='Maus', update=update)`
+
+`r md_link_tank(tank_names='IS-4', update=update)`
+
+
+```{r WR_Maus_IS4,message=FALSE,warning=FALSE,echo=FALSE}
+tank1 <- 'Maus'
+tank2 <- 'IS-4'
+
+tanks.compare = c(tank1, tank2)
+
+Measure='WR'
+min.battles = 50
+tank1.players <- as.character(stats.perf.10[(all.battles >= min.battles) & (name == tank1), account_id ])
+tank2.players <- as.character(stats.perf.10[(all.battles >= min.battles) & (name == tank2), account_id ])
+tank12.players <- base::intersect(tank1.players, tank2.players)
+
+tank1.WR <- paste(tanks.compare[1], 'WR')
+tank2.WR <- paste(tanks.compare[2], 'WR')
+
+res1 <- stats.perf.10[account_id %in% as.integer64(tank12.players) & 
+                        (name == tanks.compare[1]), 
+                      .(account_id, WR, WR.tier.maxed)] 
+
+res1[, c(tank1.WR, 'WR at Tier') := list(WR, WR.tier.maxed) ]
+res1[,c('WR','WR.tier.maxed') := NULL]
+
+res2 <- stats.perf.10[account_id %in% as.integer64(tank12.players) & 
+                        (name == tanks.compare[2]), 
+                      .(account_id, WR)]
+res2[, c(tank2.WR) := WR ]
+res2[, 'WR':= NULL]
+
+res12 <- merge(res1, res2, by='account_id')
+WR.delta.var <- paste(paste(tanks.compare, collapse = ' - '), 'WR')
+res12[, (WR.delta.var) := get(tank1.WR) - get(tank2.WR)]
+
+breaks <- seq(0.25, 0.85, 0.05)
+title <- paste("Players' WR", tank1, 'vs.', tank2)
+plot_scatter(res12, title, update, 
+             tank1.WR, tank2.WR, 
+             x_pct = TRUE, y_pct=TRUE, 
+             x_breaks=breaks, y_breaks=breaks, x_lims=TRUE, y_lims=TRUE,   
+             size=1, smooth = 'lm', formula= y~x+0, averages = TRUE)
+
+
+plot_average_Y(res12, title, update, 
+               'WR at Tier', WR.delta.var, avg_name = 'Difference', fill_var = 'WR' , 
+               tier = tierN, y_pct = TRUE, min_samples = 0, 
+               bin_breaks = buckets.WR.narrow, y_steps = 10)
+
+```
+
+
+```{r rWR_per_skill_level_Maus_IS4}
+perf_measure <- 'Relative WR'
+by_measure <- 'WR at Tier'
+
+# Colors
+palette.sel <- c(2,7)
+palette.fill <- palette.graphs[palette.sel]
+palette.annotate <- palette.lines[palette.sel]
+names(palette.fill) <- tanks.compare
+names(palette.annotate) <- tanks.compare
+
+res <- stats.perf.10[ (name %in% tanks.compare) & DT_filter_enough_battles.rWR(stats.perf.10), 
+                          .('WR at Tier' = WR.tier.maxed, 
+                            'Relative WR' = rWR), 
+                          by=.(Player = account_id, Tank = name)]
+
+title.tier <- paste0('Tier ', get_tier_roman(tierN), 'tanks')
+
+title <- get_plot_title_perf_by(paste(tanks.compare, collapse = " vs. "), perf_measure, 'WR at Tier')
+
+plot_average_Y(res, title, update, by_measure, perf_measure, 
+               fill_var ='Tank', fill_elems = tanks.compare, 
+               bin_breaks = buckets.WR.narrow,
+               x_pct = TRUE, y_step = 0.01, y_pct = TRUE,
+               palette.fill = palette.fill,
+               palette.annotate = palette.annotate,
+               mean = TRUE, tier = tierN)
+```
+
+
+
+```{r fig_player_WR_histogram_Maus_IS4}
+res <- stats.perf.10[ (name %in% tanks.compare), 
+                            .('WR at Tier' = WR.tier.maxed, 
+                              Tank = name)]
+plot_histogram(res, 'Player WR at tier X', update, x_name = 'WR at Tier', y_name = '% of Players', 
+               fill_var = 'Tank', 
+               palette.fill = palette.fill, 
+               palette.annotate = palette.annotate, 
+               binwidth = .01, x_step = .05, y_breaks = seq(0,1, 0.01), relative = TRUE, 
+               x_pct = TRUE, y_pct = TRUE, median = FALSE, )
+
+```
+
+
+
+
+## Tier IX
+
+```{r calc_pf_t9,message=FALSE}
+tierN = 9 
+stats.perf.9 <- stats.perf[tier == tierN]
+
+# calc PF
+dat.9 <- pf_prep(stats.perf.9, max.battles = 0.95)
+res.9 <- pf_est_factors(dat.9, mode="best", verbose=FALSE)
+
+res.pf <- pf_get_tank_perf(res.9)
+
+res.rWR <- stats.perf.9[ DT_filter_enough_battles.rWR(stats.perf.9),  
+                               .('Average WR'   = mean(WR), 
+                                 'Relative WR'  = mean(rWR),
+                                 'Average Damage' = mean(avg_dmg),
+                                 'Player WR at Tier' = mean(WR.tier.maxed), 
+                                 'Players'      = uniqueN(account_id),
+                                 'Battles/Player' = mean(all.battles), 
+                                 'Vehicle Class'= first(type), 
+                                 'Premium'      = first(is_premium),
+                                 'tank_id'      = first(tank_id)),
+                               by=name ]
+
+res <- merge(res.pf, res.rWR, by=c('tank_id', 'name'), all=TRUE)
+setnames(res, c('name', 'tank.perf'), c('Tank', 'Tank Performance Factor'))
+res <- prep_plot_tank(res, y_name)
+
+```
+
+```{r pf_vs_rWR_t9_HT}
+tierN <- 9
+vehicle_class <- 'Heavy Tank'
+title <- get_plot_title_subtitle('Tank Performance Factors vs. Relative WR', paste0(vehicle_class, 's'))
+subtitle <- get_subtitle(update, tier = tierN)
+
+plot_scatter(res[`Vehicle Class`== vehicle_class], 
+             title, update, 
+             'Relative WR', 'Tank Performance Factor', 
+             x_pct = TRUE, y_pct=TRUE, 
+             y_breaks=seq(0.9, 1.1, 0.01), x_breaks=seq(-0.1, 0.1, 0.005), 
+             palette.colors = palette.premium, 
+             color_var = 'Tank type', 
+             shape_var='Vehicle Class', 
+             names = 'Tank', 
+             subtitle = subtitle)
+
+```
+
+```{r pf_vs_rWR_t9_MT}
+tierN <- 9
+vehicle_class <- 'Medium Tank'
+title <- get_plot_title_subtitle('Tank Performance Factors vs. Relative WR', paste0(vehicle_class, 's'))
+subtitle <- get_subtitle(update, tier = tierN)
+
+plot_scatter(res[`Vehicle Class`== vehicle_class], 
+             title, update, 
+             'Relative WR', 'Tank Performance Factor', 
+             x_pct = TRUE, y_pct=TRUE, 
+             y_breaks=seq(0.9, 1.1, 0.01), x_breaks=seq(-0.1, 0.1, 0.005), 
+             palette.colors = palette.premium, 
+             color_var = 'Tank type', 
+             shape_var='Vehicle Class', 
+             names = 'Tank', 
+             subtitle = subtitle)
+```
+
+
+```{r pf_vs_rWR_t9_TD}
+tierN <- 9
+vehicle_class <- 'Tank Destroyer'
+title <- get_plot_title_subtitle('Tank Performance Factors vs. Relative WR', paste0(vehicle_class, 's'))
+subtitle <- get_subtitle(update, tier = tierN)
+
+plot_scatter(res[`Vehicle Class`== vehicle_class], 
+             title, update, 
+             'Relative WR', 'Tank Performance Factor', 
+             x_pct = TRUE, y_pct=TRUE, 
+             y_breaks=seq(0.9, 1.1, 0.01), x_breaks=seq(-0.1, 0.1, 0.005), 
+             palette.colors = palette.premium, 
+             color_var = 'Tank type', 
+             shape_var='Vehicle Class', 
+             names = 'Tank', 
+             subtitle = subtitle)
+```
+
+
+## Tier VIII
+
+```{r calc_pf_t8,message=FALSE}
+tierN = 8 
+stats.perf.8 <- stats.perf[tier == tierN]
+
+# calc PF
+dat.8 <- pf_prep(stats.perf.8, max.battles = 0.95)
+res.8 <- pf_est_factors(dat.8, mode="best", verbose=FALSE)
+
+res.pf <- pf_get_tank_perf(res.8)
+
+res.rWR <- stats.perf.8[ DT_filter_enough_battles.rWR(stats.perf.8),  
+                               .('Average WR'   = mean(WR), 
+                                 'Relative WR'  = mean(rWR),
+                                 'Average Damage' = mean(avg_dmg),
+                                 'Player WR at Tier' = mean(WR.tier.maxed), 
+                                 'Players'      = uniqueN(account_id),
+                                 'Battles/Player' = mean(all.battles), 
+                                 'Vehicle Class'= first(type), 
+                                 'Premium'      = first(is_premium),
+                                 'tank_id'      = first(tank_id)),
+                               by=name ]
+
+res <- merge(res.pf, res.rWR, by=c('tank_id', 'name'), all=TRUE)
+setnames(res, c('name', 'tank.perf'), c('Tank', 'Tank Performance Factor'))
+res <- prep_plot_tank(res, y_name)
+
+```
+
+```{r pf_vs_rWR_t8_HT}
+tierN <- 8
+vehicle_class <- 'Heavy Tank'
+title <- get_plot_title_subtitle('Tank Performance Factors vs. Relative WR', paste0(vehicle_class, 's'))
+subtitle <- get_subtitle(update, tier = tierN)
+
+plot_scatter(res[`Vehicle Class`== vehicle_class], 
+             title, update, 
+             'Relative WR', 'Tank Performance Factor', 
+             x_pct = TRUE, y_pct=TRUE, 
+             y_breaks=seq(0.9, 1.1, 0.01), x_breaks=seq(-0.1, 0.1, 0.005), 
+             palette.colors = palette.premium, 
+             color_var = 'Tank type', 
+             shape_var='Vehicle Class', 
+             names = 'Tank', 
+             subtitle = subtitle)
+
+```
+
+```{r pf_vs_rWR_t8_MT}
+tierN <- 8
+vehicle_class <- 'Medium Tank'
+title <- get_plot_title_subtitle('Tank Performance Factors vs. Relative WR', paste0(vehicle_class, 's'))
+subtitle <- get_subtitle(update, tier = tierN)
+
+plot_scatter(res[`Vehicle Class`== vehicle_class], 
+             title, update, 
+             'Relative WR', 'Tank Performance Factor', 
+             x_pct = TRUE, y_pct=TRUE, 
+             y_breaks=seq(0.9, 1.1, 0.01), x_breaks=seq(-0.1, 0.1, 0.005), 
+             palette.colors = palette.premium, 
+             color_var = 'Tank type', 
+             shape_var='Vehicle Class', 
+             names = 'Tank', 
+             subtitle = subtitle)
+```
+
+
+```{r pf_vs_rWR_t8_TD}
+tierN <- 8
+vehicle_class <- 'Tank Destroyer'
+title <- get_plot_title_subtitle('Tank Performance Factors vs. Relative WR', paste0(vehicle_class, 's'))
+subtitle <- get_subtitle(update, tier = tierN)
+
+plot_scatter(res[`Vehicle Class`== vehicle_class], 
+             title, update, 
+             'Relative WR', 'Tank Performance Factor', 
+             x_pct = TRUE, y_pct=TRUE, 
+             y_breaks=seq(0.9, 1.1, 0.01), x_breaks=seq(-0.1, 0.1, 0.005), 
+             palette.colors = palette.premium, 
+             color_var = 'Tank type', 
+             shape_var='Vehicle Class', 
+             names = 'Tank', 
+             subtitle = subtitle)
+```
+
+
+
+```{r}
+## Analysis of required iterations #############################################
+tierN = 10 
+
+stats.tier <- stats.perf.mainMM[tier == tierN]
+
+dat <- pf_prep(stats.tier)
+res <- pf_est_factors(dat.cv, mode="best", debug.convergence = 20)
+
+
+## calculate errors, plot errors in terms of battle count and player skill level
+
+
+## Analysis of required iterations #############################################
+tierN = 10 
+dat.iter <- list()
+res.iter <- list()
+
+stats.tier <- stats.perf.mainMM[tier == tierN]
+
+dat.cv <- pf_prep(stats.tier)
+res.cv <- pf_est_factors(dat.cv, mode="best", debug.convergence = 20)
+
+tank.perf.cv <- list()
+cv.rank <- data.table("Rank"= seq_len(20))
+cv.factors <- data.table("Rank"= seq_len(20))
+for (iter in names(res.cv)) {
+  tank.perf.cv[[iter]] <- get_tank_perf(dat.cv, res.cv[[iter]], topN = 20)
+  cv.rank[[iter]] <- tank.perf.cv[[iter]]$tank_names
+  cv.factors[[iter]] <- tank.perf.cv[[iter]]$tank.perf
+  print(paste('Tier VIII: Iteration: ', iter))
+  print(tank.perf.cv[[iter]])
+  print("")
+}
+
+## Analysis of tiers  ##########################################################
+
+dat.tiers <- list()
+res.tiers <- list()
+
+for (tierN in seq(6, 10)) {
+  tier.str <- as.character(tierN)
+  cat(paste("\nTier:", tiers.roman[[tierN]], "\n\n"))
+  dat.tiers[[tier.str]] <- pf_prep(stats.8.0[tier == tierN])
+  res.tiers[[tier.str]] <- pf_est_factors(dat.tiers[[tier.str]], mode="best")
+}
+
+tank.perf.tiers <- list()
+player.skill.tiers <- list()
+
+for (tierN in seq(6, 10)) {
+  tank.perf.tiers[[tier.str]]    <- get_tank_perf(dat.tiers[[tier.str]], res.tiers[[tier.str]])
+  player.skill.tiers[[tier.str]] <- get_player_skill(dat.tiers[[tier.str]], res.tiers[[tier.str]], min.battles = 100)
+}
+
+
+for (tierN in seq(6, 10)) {
+  tier.str <- as.character(tierN)
+  cat(paste("\nTier:", tiers.roman[[tierN]], "Top 20\n\n"))
+  print(get_tank_perf(dat.tiers[[tier.str]], res.tiers[[tier.str]], topN = 20))
+  
+  cat(paste("\nTier:", tiers.roman[[tierN]], "Bottom 20\n\n"))
+  print(get_tank_perf(dat.tiers[[tier.str]], res.tiers[[tier.str]], topN = -20))
+}
+
+## EU TOP 30
+tier.str = "10"
+
+N = 100
+player.skill.t10 <- get_player_skill(dat.tiers[[tier.str]], res.tiers[[tier.str]], 
+                                     min.battles = 100, topN = N, only_region="eu" )
+nicknames <- get_account_nicknames(player.skill.t10$account_id)
+player.skill.t10EU <- DT_merge_nicknames(player.skill.t10, nicknames)[order(-player.skill)]
+
+```
+
+
+

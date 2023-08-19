@@ -1,0 +1,141 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+stats.update <- load_tank_stats_update('7.5')
+stats.update.tier8 <- subset(stats.update, (tier ==8) & (all.battles > 50))
+stats.update.tier8 <- get_stats_tank_perf(stats.update.tier8)
+players = stats.update.tier8[,.(Players=uniqueN(account_id))]
+nrow(stats.update.tier8) / nrow(stats.update[tier==8])
+```
+
+```{r}
+## List tanks by players
+stats.update.tier8[,.(Players=.N), by=.(Tank=name)][order(-Players)]
+
+# Tier VIII
+model.tier8 <- lm(WR ~ DR + avg_dmg + avg_kills + spot_rate, weights = all.battles, data=stats.update.tier8[all.battles > 200] )
+
+# T34
+model.tier8.T34 <- lm(WR ~ DR + avg_dmg + avg_kills + spot_rate, weights = all.battles, data=stats.update.tier8.T34[all.battles > 200] )
+```
+
+
+```{r}
+WR_mtrx      <- as.data.table(dcast(stats.update.tier8, 
+                                                account_id ~ tank_id , 
+                                                value.var = 'WR', fill=0))
+btl_mtrx <- as.data.table(dcast(stats.update.tier8, 
+                                                account_id ~ tank_id , 
+                                                value.var = 'all.battles', fill=0))
+
+## Does not work until I can map tank.perf to each row...
+# Sparse matrix lm()?? 
+#battles.t <- as.data.table(dcast(stats.update.tier8, account_id + tank_id ~ account_id , value.var = 'all.battles', fill=0))
+
+account_ids <- WR_mtrx[, account_id]
+
+WR_mtrx[, account_id:=NULL]
+btl_mtrx[, account_id:=NULL]
+
+tank_ids <- as.integer(colnames(WR_mtrx))
+tank_names <- tanks[tank_id %in% tank_ids, .(tank_id, name)][match(tank_id, tank_ids)]$name
+
+played_mtrx <- btl_mtrx
+played_mtrx[played_mtrx > 0] <- 1
+
+win_mtrx <- btl_mtrx * WR_mtrx
+
+tank.wins <- colSums(win_mtrx)
+player.wins <- rowSums(win_mtrx)
+
+btl_mtrx <- btl_mtrx[rowSums(played_mtrx) > 1]
+win_mtrx <- win_mtrx[rowSums(played_mtrx) > 1]
+played_mtrx <- played_mtrx[rowSums(played_mtrx) > 1]
+
+###
+res <- est_tank_player_perf(btl_mtrx, win_mtrx, 50, verbose = TRUE)
+names(res$tank.perf) <- tank_names
+sort(res$tank.perf)
+###
+
+
+### 20+ battles
+#> nrow(btl_mtrx)
+#[1] 177673
+# > sum(played_mtrx)
+# [1] 681962
+# > sum(btl_mtrx)/1e6
+# [1] 69.24771
+
+### 50+ battles
+# > nrow(btl_mtrx)
+# [1] 104289
+# > sum(played_mtrx)
+# [1] 333110
+# > sum(btl_mtrx)/1e6
+# [1] 54.32161
+
+player.skill <- rep(1, nrow(btl_mtrx)) 
+
+tank.perf <- rep(1, ncol(btl_mtrx))
+
+tank.perf <- runif(ncol(btl_mtrx), 0.5, 1.5)
+
+```
+
+
+
+```{r tiers8_10}
+stats.update.tier8_10 <- subset(stats.update, (tier >=8) & (all.battles > 50))
+stats.update.tier8_10 <- get_stats_tank_perf(stats.update.tier8_10)
+
+WR_mtrx      <- as.data.table(dcast(stats.update.tier8_10, 
+                                                account_id ~ tank_id , 
+                                                value.var = 'WR', fill=0))
+btl_mtrx <- as.data.table(dcast(stats.update.tier8_10, 
+                                                account_id ~ tank_id , 
+                                                value.var = 'all.battles', fill=0))
+
+## Does not work until I can map tank.perf to each row...
+# Sparse matrix lm()?? 
+#battles.t <- as.data.table(dcast(stats.update.tier8, account_id + tank_id ~ account_id , value.var = 'all.battles', fill=0))
+
+account_ids <- WR_mtrx[, account_id]
+
+WR_mtrx[, account_id:=NULL]
+btl_mtrx[, account_id:=NULL]
+
+tank_ids <- as.integer(colnames(WR_mtrx))
+
+win_mtrx <- btl_mtrx * WR_mtrx
+
+tank.wins <- colSums(win_mtrx)
+player.wins <- rowSums(win_mtrx)
+
+played_mtrx <- btl_mtrx
+played_mtrx[played_mtrx > 0] <- 1
+
+btl_mtrx <- btl_mtrx[rowSums(played_mtrx) > 1]
+win_mtrx <- win_mtrx[rowSums(played_mtrx) > 1]
+played_mtrx <- played_mtrx[rowSums(played_mtrx) > 1]
+
+###
+res <- est_tank_player_perf(btl_mtrx, win_mtrx, 50, verbose = TRUE)
+###
+
+tank_names <- tanks[tank_id %in% tank_ids, .(tank_id, name)][match(tank_id, tank_ids)]$name
+names(res$tank.perf) <- tank_names
+sort(res$tank.perf)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

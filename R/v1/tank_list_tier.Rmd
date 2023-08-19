@@ -1,0 +1,37 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150,echo = FALSE, dev = 'svglite', fig.ext = 'svgz')
+# Checks
+stopifnot(exists('target_page'))
+update = get_path_elem(target_page, 2)
+tier = get_path_elem_int(target_page,3)
+tierN = tier
+tier.roman <- get_tier_roman(tier)
+stats.tier <- get_stats.update.tier(tierN)
+stats.tier.perf <- get_stats_tank_perf(stats.tier)
+tanks.enough_players <- get_tanks_enough_players(stats.tier.perf)
+```
+---
+title: "Tier `r get_tier_roman(tier)` tanks"
+menutitle: "Tanks"
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: 6
+tags: [ "`r update`", "Tier `r tier.roman`", "Tanks/Tier"]
+alwaysopen: false
+hidden: true
+autohide: true
+---
+```{r tank_list,results='asis'}
+
+for (ndx in order(Nations.str)) {
+  tank_nation = Nations[[ndx]]
+  tank_list = get_tank_list(stats = stats.tier, tank_nation = tank_nation, tank_tier = tier)
+  if (nrow(tank_list) > 0) { 
+    cat(paste('\n##', Nations.str[[ndx]], 'Tanks\n\n'))
+    cat(md_tank_list(tank_list, path=".", enough_players = tanks.enough_players), sep = '\n')
+  }
+}
+rm(stats.tier)
+```

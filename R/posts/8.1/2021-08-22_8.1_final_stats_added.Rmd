@@ -1,0 +1,131 @@
+---
+title: "Update 8.1 final stats added "
+linktitle: "2021-08-22 Update 8.1 final stats added"
+date: `r today("UTC")`
+publishdate: 2021-08-22
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "post", "8.1" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = 'svglite', fig.ext = 'svgz');
+update_ver 	<- '8.1'
+stopifnot(all(exists("stats.update"), update_ver == update))
+stats.update.perf <- get_stats_tank_perf.rWR(stats.update)
+res <- stats.update[, .(Battles=sum(all.battles), Players=uniqueN(account_id))]
+```
+
+Final stats for `r md_link_update(update=update_ver)` have been added. 
+
+* In total, there were `r auto_format(res$Battles)` battles by `r auto_format(res$Players)` 
+players recorded in the database during the `r md_link_update(update=update_ver)`.
+
+* This time there is a major change in the 
+`r md_link(update=update_ver, link_text="TOP20 best performing tanks", rel_link="#highest-relative-wr")` 
+- `r md_link_tank(tank_names='Annihilator', update=update_ver)` did not even make to TOP20. 
+Instead, `r md_link_tank(tank_names='Object 252U', update=update_ver)` took the 
+lead and `r md_link_tank(tank_names='T28 Concept', update=update_ver)` and 
+`r md_link_tank(tank_names='T54E2', update=update_ver)` took the 2nd and 3rd 
+spots respectively. 
+
+```{r fig_tanks_top_RelativeWR}
+plot_relativeWR(stats = stats.update.perf, update = update_ver);
+```
+
+### Annihilator's "nerf"
+
+* Wait, was `r md_link_tank(tank_names='Annihilator', update=update_ver)` secretly 
+nerfed in `r md_link_update(update=update_ver)`? Yes and no. While its stats 
+were not touched, [WG did nerf Anni through MM](http://forum.wotblitz.eu/index.php?/topic/55280-matchmaking-discussion-thread/page__st__11880__pid__851060#entry851060). 
+Ever since `r md_link_update(update=update_ver)`, battles have had equal 
+number of `r md_link_tank(tank_names='Annihilator', update=update_ver)`s on both 
+the sides. While `r md_link_tank(tank_names='Annihilator', update=update_ver)`s 
+still reap havoc on the battlefields, the red teams have had equal number of those 
+ridiculously OP tanks. This is WG's way of secretly nerfing a tank that according to 
+their own words ["doesn't affect balance system so much"](https://discord.com/channels/481445776178806785/502017295107883008/811977574951288882)... 
+
+[![gallabru@EU analysis of Annihilators pre-and post 8.1](https://i.imgur.com/kZvAYvD.png)](http://forum.wotblitz.eu/index.php?/topic/55280-matchmaking-discussion-thread/page__st__11880__pid__851060#entry851060)
+
+* The above image is courtesy of 
+[gallabru@EU](https://www.blitzstars.com/player/eu/gallabru) who has 
+[analyzed the replays](http://forum.wotblitz.eu/index.php?/topic/55280-matchmaking-discussion-thread/page__st__11880__pid__851060#entry851060) submitted to [WoTinspector.com](https://replays.wotinspector.com/). There is nothing uncertain about this secret MM rule for the `r md_link_tank(tank_names='Annihilator', update=update_ver)`, but WG has not officially communicated this change. Maybe WG is preparing players for the next ultra-OP Halloween tank?
+
+### Other notable changes
+
+* The `r md_link_tier(update=update_ver, tier=10)` 
+`r md_link_tank(tank_names='M-VI-Yoh', update=update_ver)` has improved its 
+performance still and got into TOP10 best performing tanks. Maybe players have 
+learned to use the small 3-shot gun that has crazy DPM. The dual-shot 
+gun is so fun, but it lacks the DPM to survive end-games. 
+
+```{r fig_tanks_top20_tier10_RelativeWR}
+tank_type  	<- NULL
+tierN 			<- 10
+stats 			<- subset(stats.update.perf, tier == tierN)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, 
+																tank_type = tank_type, tier = tierN)
+```
+
+* The new `r md_link_tier_premium_tank(update=update_ver, tier=8)`
+`r md_link_tank(tank_names='Somua SM', update=update_ver)` has performed very well 
+and why not: a tank with high burst damage, great turret armor, gun depression and decent 
+mobility rarely struggles on on the battlefield. 
+
+```{r fig_tanks_top20_tier8_RelativeWR}
+tank_type  	<- NULL
+topN 				<- 20
+tierN 			<- 8
+stats 			<- subset(stats.update.perf, tier == tierN)
+plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, 
+																tank_type = tank_type, tier = tierN)
+```
+
+* It should be noted though that in addition for the 
+`r md_link_tank(tank_names='Somua SM', update=update_ver)` being very good tank 
+(especially for the less-skilled payers), it has been played by very good players so 
+far (tier VIII WR +6% vs. the average). 
+
+```{r fig_player_base_somua}
+tank_id     <- get_tank_id('Somua SM')
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_player_base(stats = stats, tank_id = tank_id, 
+                      title.avg = paste('Tier', get_tier_roman(tierN), tank_types), 
+                      update = update_ver)
+```
+
+* The other new `r md_link_tier_premium_tank(update=update_ver, tier=8)` 
+`r md_link_tank(tank_IDs=6785, update=update_ver)` did not perform that well and 
+ended up being 6th worst performing 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Medium Tank')`.
+
+```{r fig_tank_relativeWR_skoda_T27}
+tank_id     <- 6785
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_relativeWR(stats = stats, tank_id = tank_id, update = update_ver)
+```
+
+
+* `r md_link_tank(tank_names='Sturer Emil', update=update_ver)` got (over)buffed in 
+`r md_link_update(update="8.1")`, but it did not impact that much on its stats. It seems the tank 
+is still too hard to play for most of the players (no armor, no turret). I personally felt 
+the engine-buff was too much and the tank lost its sluggish characteristics and became
+more of an arcade version of itself.  I wish WG would partially reverse its engine buff :-) 
+
+```{r fig_tank_relativeWR_st_emil}
+tank_id     <- get_tank_id('Sturer Emil')
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_relativeWR(stats = stats, tank_id = tank_id, update = update_ver)
+```

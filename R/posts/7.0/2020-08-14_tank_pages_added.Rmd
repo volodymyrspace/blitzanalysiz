@@ -1,0 +1,102 @@
+---
+title: "Tank-specific pages added"
+linktitle: "2020-08-14 Tank-specific pages added"
+date: `r today("UTC")`
+publishdate: 2020-08-14
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "post", "7.0"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = 'svglite', fig.ext = 'svgz');
+update_ver = '7.0'
+stopifnot(all(exists("stats.update"), update_ver == update))
+res <- stats.update[, .(Battles=sum(all.battles), Players=uniqueN(account_id))]
+stats.update.perf <- get_stats_tank_perf.rWR(stats.update)
+```
+ 
+Big update! Tank-specific pages have been added to the site 
+(`r md_link_tank(tank_names='E 100', update=update_ver)`). 
+The pages show detailed analysis of each tier V-X tank. One of 
+the most interesting graphs is the Relative WR for different player 
+skill-levels. WR at the tier  is used as a measure for players' skill. 
+It tells how well the tank is performing for different skill-level players 
+relative to the other players' other same tier tanks. 
+
+If the Relative WR is high for players with low WR at the tier, it means 
+the tank is easy to play and less-skilled players do in average better 
+in it than other same tier tanks. These are usually well-armored tanks 
+with high-alpha guns. 
+
+```{r fig_tanks_tier10_HT_E100_RelativeWR}
+tank_id 		<- get_tank_id("E 100")
+tank_type  	<- get_tank_type(tank_id)
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_relativeWR(stats = stats, update = update_ver, tank_id = tank_id)
+```
+
+If the relative WR is negative for players with low WR at the tier, but high for players with high WR at the tier, it means the tank is difficult to play, but can perform well in the hands of a good player. These are often tanks that require high-level of tactical skills and gameplay. It might be frustrating for less-skilled players to play these tanks. 
+
+```{r fig_tanks_tier10_MT_T62A_RelativeWR}
+tank_id 		<- 	get_tank_id("T-62A")
+tank_type  	<- get_tank_type(tank_id)
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_relativeWR(stats = stats, update = update_ver, tank_id = tank_id)
+```
+
+## Stats levels vs. WR in a tank
+
+`r md_link_tank(tank_names='E 100', update=update_ver, tank_str="Tank pages")` 
+also have graphs showing _input-stat_ levels (average damage, average kills, 
+spot rate, etc.) for different WR levels. The bars show 20-80% of the players 
+within the WR bucket (20% have lower stats and 20% have higher stats with the 
+same WR). 
+
+
+```{r fig_tanks_tier10_HT_E100_AvgDmg}
+tank_id 		<- 	get_tank_id("E 100")
+tank_type  	<- get_tank_type(tank_id)
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_avg_dmg(stats = stats, update = update_ver, tank_id = tank_id)
+```
+
+## X/Y Stats vs. WR in a tank
+
+Finally, there are contour-plots of two _input_-stats vs. WR. These graphs
+show what combination of stats are require in average to reach certain WR 
+with a tank.
+
+```{r fig_E100_WR_vs_avg_dmg_kills, warning=FALSE}
+tank_name <- "E 100"
+tank_id 	<- get_tank_id(tank_name)
+
+x_name = 'Average Damage'
+y_name = 'Kills/Battle'
+z_name = 'WR'
+
+stats.update.tank	<- get_stats_tank(tank_id, DT = stats.update.perf)
+
+res <- stats.update.tank[ ,
+												.('Average Damage' = avg_dmg, 
+													'Kills/Battle' = avg_kills, 
+													'WR' = WR, 
+													'Battles' = all.battles)]
+
+title <- get_plot_title_tank_z_is_xy(tank_name, z_name, x_name, y_name)
+
+plot_contour_discrete(res, title, update, 
+                      x_name, y_name, z_name, 
+											weights = 'Battles', 
+                      col.palette = palette.WN8, 
+                      col.levels = buckets.WR, 
+                      tier = tierN)
+```
+
+_Please note_ that the plotting library tries to make the contour lines convex and therefore certain graphs have odd behaviors on the edges. 

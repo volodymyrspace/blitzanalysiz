@@ -1,0 +1,297 @@
+```{r setup, include=FALSE,warning=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150,echo = FALSE, dev = 'svglite', fig.ext = 'svgz')
+# Checks
+stopifnot(exists('target_page'))
+# stopifnot(exists('stats.update'))
+update      <- get_path_elem(target_page, 2)
+preliminary <- is_preliminary(update)
+cols.sel <- c('account_id', 'tank_id', 'battles', 'battles.career', 'tier',
+              'nation', 'type', 'is_premium', 'region', 'battles.update',
+              'WR.update', 'WR.tier.maxed')
+if (! exists('stats.update')) {
+  rm('stats.update')
+}
+stats.update      <- ds_load_ts_update(update, cols = cols.sel)
+stats.update.perf <- get_stats_tank_perf(ds_load_ts_maxed(update, cols = cols.sel))
+page_weight <- 1
+topN <- 20
+battles.all.update <- stats.update[, sum(battles)]
+var2rm <- c('res', 'stats.update', 'stats.update.perf')
+```
+
+---
+title: "Players"
+menutitle: "Players"
+linktitle: "Players (`r update_version(update)`)"
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: `r page_weight`
+description: "World of Tanks Blitz player stats. Update `r update`"
+tags: [ "`r update`", "Players", "Tanks/Tier"  ]
+alwaysopen: false
+autohide: true
+hidden: true 
+---
+
+## Battles per Player
+
+```{r update_overall_stats}
+s <- stats.update[, .(Battles = sum(battles)), 
+                  by=account_id][,.(mean=mean(Battles), median=median(Battles), max=max(Battles))];
+```
+The graph shows the  number of battles fought per player during the update `r update`. On average, players played `r round(s$mean,0)` battles and the median battle count was `r auto_format(s$median)`. The following tables shows battle counts by N% most inactive players during the update. 
+
+```{r fig_update_battle_count_histogram}
+res <- stats.update[, .(Battles = sum(battles)), 
+                    by=account_id]
+plot_histogram(res, 'Battles played per Players', update, 'Battles', 'Share of Players %', 
+               x_breaks = seq(0,2500,250), x_lims= c(0,2500), x_signif = 2, y_step = 0.025, y_pct = TRUE, y_signif = 3)
+```
+
+#### Battles per Player - Table
+
+The table below shows the (max) number of battles played during `r update` by the X% most _inactive_ players. Reading tip 10% most _active_ players played more than the 90% most _inactive_ players.
+
+{{% expand "Show table" %}}
+```{r update_battle_count_summary, echo = FALSE}
+md_table_quantiles(stats.update[, .(Battles = sum(battles)), 
+                           by=account_id][,Battles],'Battles' , breaks = seq(0,1,.05))
+```
+{{% /expand %}}
+
+## Player WR Distribution
+
+The graph shows WR distribution for players (y-axis) with during the update `r update` (x-axis). Only players with more than `r min_battles.update` battles are included.  
+
+```{r fig_update_player_WR_histogram}
+res <- stats.update[battles > min_battles.update, 
+                    .(WR = first(WR.update)), 
+                    by=account_id]
+plot_histogram(res, "Player WR distribution (active players)", update, x_name='WR', y_name='Share of Players' , 
+               x_lims= c(0, 1), x_step = 0.1, x_pct = TRUE, 
+               y_pct = TRUE, y_step = 0.01, bins = 100) 
+```
+
+### Unfiltered WR distribution
+
+From the **unfiltered** WR histogram one can see the bumbs at 0%, 25%, 33%, 50%, 67% 75% and 100% due to large number of of players who played only few battles during the update. Wargaming has an issue with player churn and inactivity. Large share of players play few battles and leave the game. Only small share of players are active like you - you would not have not found this page otherwise ;-) 
+
+```{r fig_update_player_WR_histogram_unfiltered}
+res <- stats.update[, .(WR = first(WR.update)), 
+                    by=account_id]
+plot_histogram(res, "Player WR distribution (all players)", update, 
+               x_name='WR', y_name='Share of Players' , 
+               x_lims= c(0, 1), x_step = 0.1, x_pct = TRUE, 
+               y_pct = TRUE, y_step = 0.01, bins = 100) 
+```
+
+{{% expand "Show table" %}}
+Listing player WR distribution for players with at least `r min_battles.update` battles during the update.
+
+```{r update_player_WR}
+h <- hist(stats.update[battles.update > min_battles.update, 
+                       .(WR = first(WR.update)), 
+                       by=account_id][,WR], breaks = 100, plot=FALSE);
+h$density <- h$counts/sum(h$counts)
+h$cum <- cumsum(h$density);
+md_table(data.table("WR"=floor(100*h$mids)/100, 
+                       "% of players"=h$density,
+                       "Cumulative share %"=h$cum))
+```
+{{% /expand %}}
+
+
+## Average Tier
+
+The following graph shows a histogram of share of players (y-axis) with certain average tier during the update `r update` (x-axis). Only players with more than `r min_battles.update` are included.
+
+```{r fig_update_player_avg_tier_histogram}
+res <- stats.update[battles.update > min_battles.update, 
+                    .('Average Tier' = sum(tier*battles)/sum(battles)), 
+                    by=account_id]
+plot_histogram(res, 'Average Tier (active players)', update, 
+               x_name='Average Tier', y_name= 'Share of Players %', x_lims = c(1,10), x_step = 1, y_step = 0.01, mean = FALSE)
+```
+
+The large number of players who played  only few battles during the update are clearly visible in the unfiltered average tier histogram.
+
+```{r fig_update_player_avg_tier_histogram_unfiltered}
+res <- stats.update[, .('Average Tier' = sum(tier*battles)/sum(battles)), 
+                    by=account_id]
+plot_histogram(res, 'Average Tier (all players)', update, 
+               x_name = 'Average Tier', y_name = 'Share of Players %', x_lims = c(1,10), x_step = 1, y_step = 0.01, mean = FALSE)
+```
+
+## WR vs. Average Tier
+
+This graph shows player WR vs. average tier during the update `r update`. Minimum `r min_battles.update` battles required.
+
+```{r fig_tiers_WR_vs_avg_tier,warning=FALSE}
+res <- stats.update[(battles.update >= min_battles.update),
+                   .('WR' = first(WR.update),
+                     'Average Tier' = sum(tier*battles)/sum(battles)),
+                   by=account_id][order(WR)];
+
+plot_average_XY(res, 'Player WR vs. Average Tier', update, 'Average Tier', 'WR',
+                x_breaks = seq(1,10),
+                y_breaks = seq(0,1, .1),
+                y_pct = TRUE,
+                y_lims = c(.3, .8), bins=10)
+```
+
+## Share of Players per WR per Tier
+
+This chart shows share of players with certain WR (bar color-code) at certain tier (x-axis). The graph considers only battles with maxed-out tanks and players with minimum number of battles at the tier (10-30 depending on the tier). Each players' battles at different tiers have been taken into account.
+
+```{r fig_tiers_WR_per_tier}
+res <- stats.update.perf [ , 
+                     .(WR=first(WR.tier.maxed)), 
+                     by=.(tier, account_id)][,.N, by=.(Tier = tier, 
+                                                       WR = cut(WR, breaks = buckets.WR, 
+                                                                             include.lowest = TRUE))][order(Tier, WR)]
+plot_col_share_discrete(res, 'Player WR per Tier (with maxed-out tanks)', update, 
+                        x_name = 'Tier', fill_var = 'WR', y_buckets = buckets.WR)
+```
+
+## Number of Battles per Tier
+
+```{r fig_tiers_battles_per_tier}
+res <- stats.update[, .(Battles = sum(battles)), 
+                    by=.(Tier=tier)][order(Tier)];
+battles.all = res[, sum(Battles)];
+res[, 'Share of Battles':= Battles / battles.all]
+
+title <- get_plot_title_share_of_by('Battles', 'Tier')
+plot_col_continuous_1Y(res, title, update, 'Tier', 'Share of Battles')
+```
+
+## Share of Battles per Tank Type per Tier
+
+This chart shows share of battles fought at tier with with particular tank type during update `r update`. The width of the bar shows the share of battles in that tier's tanks out of total number of battles in the dataset (`r auto_format(battles.all.update)`).
+
+```{r fig_tiers_battles_tier_vehicle_class}
+y_name='Battles'
+x_name='Tier'
+fill_name = 'Vehicle Class'
+title <- get_plot_title_share_of_by_by(y_name, x_name, fill_name)
+res <- stats.update[,.(N = sum(battles)), 
+                    by=.(Tier=tier, 'Vehicle Class' = type)][order(Tier, `Vehicle Class`)]
+plot_marimekko(res, title, update, x_name, fill_name, palette.fill = palette.vehicle_class)
+```
+
+
+## Share of Battles per Nation per Tier
+
+This chart shows share of battles fought at tier per tank nation during update `r update`. The width of the bar shows the share of battles in that tier's tanks out of total number of battles in the dataset (`r auto_format(battles.all.update)`).
+
+```{r fig_tiers_battles_tier_nation}
+y_name='Battles'
+x_name='Tier'
+fill_name = 'Nation'
+title <- get_plot_title_share_of_by_by(y_name, x_name, fill_name)
+res <- stats.update[,.(N = sum(battles)), by=.(Tier=tier, Nation=nation)][order(Tier, Nation)];
+plot_marimekko(res, title, update, x_name = 'Tier', fill_var = 'Nation', palette.fill = palette.nation)
+```
+
+## Share of Battles per Nation per Tank Type
+
+This chart shows share of battles fought per tank nation Ã¥er tank type during update `r update`. The width of the bar shows the share of battles in that nation's tanks out of total number of battles in the dataset (`r auto_format(battles.all.update)`).
+
+```{r fig_tiers_battles_nation_vehicle_class}
+y_name='Battles'
+x_name='Nation'
+fill_name = 'Vehicle Class'
+title <- get_plot_title_share_of_by_by(y_name, x_name, fill_name)
+res <- stats.update[,.(N = sum(battles)), by=.(Nation=nation, 'Vehicle Class'=type)][order(Nation, `Vehicle Class`)]
+plot_marimekko(res, title, update, x_name, fill_name, palette.fill = palette.vehicle_class)
+```
+
+# Regions
+
+## Players by Region
+
+This graphs shows players by region _in the dataset_ who have played at least one game. 
+{{% notice note %}}
+Please note, this does **not** mean all the players per server, but just those who have been recorded in the BlitzAnalysiz database.
+{{% /notice %}}
+
+```{r fig_region_players_per_server}
+res <- stats.update[, .(Players = uniqueN(account_id)), 
+                    by=.(Region = region)];
+title = "players by region"
+plot_col_discrete_1Y(res, title, update, 
+                     x_name = 'Region', y_name = 'Players', x_labels = regions, 
+                     y_pct = FALSE, x_ordered= FALSE, fill_var = NULL, y_step=25e3)
+```
+
+## WR Distribution
+
+This graph shows players' overall WR distribution during update `r update` on different regions. 
+
+```{r fig_region_WR_distribution}
+res <- stats.update[battles.update > min_battles.update, 
+                    .('WR' = first(WR.update), 'Region'=first(region)), 
+                    by=account_id]
+x_breaks = seq(.2,.8,.1)
+plot_prob_XY(res, 'WR distribution per Region', update, x_name = 'WR', line_var = 'Region', 
+             x_breaks = x_breaks, y_step = 0.1, line_labels = regions, x_pct = TRUE, cumf = FALSE)
+```
+
+{{% notice note %}}
+These graphs cannot be used to say _anything_ about the skill-level differences between the servers. Instead, the graphs tell more about the player sampling per server. BlitzAnalysiz[] database has relatively more players from EU and NA (com) servers vs. RU and Asia servers. In all the servers the players sampled are on average more active and better than the true player average due to the way how the player account_ids are being harvested. 
+{{% /notice %}}
+
+## Cumulative distribution function 
+
+This graphs shows the same information than the previous in different format. The curve tells how large share of players (y-axis) had WR less than (x-axis) during update `r update`.  
+
+```{r fig_region_WR_cum_distribution}
+x_breaks = seq(.2, .8, .1)
+plot_prob_XY(res, 'Cumulative WR distribution per Region', update, 
+             x_name = 'WR', line_var = 'Region', 
+             x_breaks = x_breaks, y_step = 0.1, line_labels = regions, x_pct = TRUE, cumf = TRUE)
+```
+
+
+## Popularity of Tank Nations 
+
+This graph shows the popularity of tank nations by region/server. 
+
+```{r fig_region_nations}
+y_name='Battles'
+x_name='Region'
+fill_name = 'Nation'
+title <- 'Popularity of Tank nation by Region'
+res <- stats.update[,.(N = sum(battles)), 
+                    by=.('Region'=region, Nation=nation)][order(`Region`, Nation)]
+plot_col_share_discrete(res, 'Popularity of Tank nation by Region', update, 
+                        x_name = 'Region', fill_var = 'Nation', y_title = '% of Battles', 
+                        x_labels = regions, 
+                        y_bucket_labels = Nations, 
+                        palette.fill = palette.nation, y_bucket_pct = FALSE)
+```
+
+
+## Popularity of Vehicle Classes
+
+This graph shows the popularity of vehicle classes by region/server. 
+
+```{r fig_region_tank_types}
+y_name='Battles'
+x_name='Region'
+fill_name = 'Vehicle Class'
+title <- 'Popularity of Vehicle classes by Region'
+res <- stats.update[,.(N = sum(battles)), by=.('Region'=region, 'Vehicle Class'=type)][order(`Region`, `Vehicle Class`)]
+plot_col_share_discrete(res, 'Popularity of Vehicle classes by Region', update, 
+                        x_name = 'Region', fill_var = 'Vehicle Class', y_title = '% of Battles', 
+                        x_labels = regions, 
+                        y_bucket_labels = Tank_Types, 
+                        palette.fill = palette.vehicle_class, y_bucket_pct = FALSE)
+```
+
+```{r clean_up, include=FALSE}
+rm(list = var2rm)
+gc(verbose = FALSE)
+```

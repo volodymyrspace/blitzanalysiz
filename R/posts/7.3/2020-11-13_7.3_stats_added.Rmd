@@ -1,0 +1,157 @@
+---
+title: "Update 7.3 stats added "
+linktitle: "2020-11-13 Update 7.3 stats added"
+date: `r today("UTC")`
+publishdate: 2020-11-13
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "post", "7.3"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = 'svglite', fig.ext = 'svgz');
+update_ver = '7.3'
+stopifnot(all(exists("stats.update"), update_ver == update))
+res <- stats.update[, .(Battles=sum(all.battles), Players=uniqueN(account_id))]
+stats.update.perf <- get_stats_tank_perf.rWR(stats.update)
+```
+
+Stats for `r md_link_update(update_ver)` have been added. 
+
+* Total 230M battles by 484k players recorded in the database during the 
+`r md_link_update(update_ver)`. Please note, these are note all the WoT Blitz 
+players, just those tracked by BlitzAnalysiz[]. 
+
+* `r md_link_tank(tank_names='T28 Concept', update=update_ver)` and 
+`r md_link_tank(tank_names='Chimera', update=update_ver)` continue to be 
+the best performing tanks in the game. When looking into the details, it 
+is clear that `r md_link_tank(tank_names='T28 Concept', update=update_ver)`'s 
+performance in the hands of average & below-average players (strong armor) 
+pushes its average Relative WR high. The tank is performing well, but relatively 
+bit less well in the hands of very good players. This is likely due to its poor
+mobility. At the moment the Relative WR data is not 
+[stratified](https://en.wikipedia.org/wiki/Stratified_sampling). 
+Stratified sampling would eliminate the impact of the differences in the 
+tanks' player populations better and give more comparable view of the tanks' 
+performance.
+
+```{r fig_tanks_top_RelativeWR}
+plot_relativeWR(stats = stats.update.perf, update = update_ver);
+```
+
+# Swedish heavy tank line
+
+`r md_link_update(update=update_ver)` brought the Swedish heavy tanks. 
+As it is often the case with new tank lines, those are first played 
+with more experienced & better players distorting the average WR 
+statistics for the tanks. `r md_link_tank(tank_names='Emil I', update=update_ver)` 
+player population offers a great example:
+
+```{r fig_player_base_Emil_I}
+tank_id     <- get_tank_id('Emil I')
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_player_base(stats = stats, tank_id = tank_id, 
+                      title.avg = paste('Tier', get_tier_roman(tierN), tank_types), 
+                      update = update_ver)
+```
+
+## Tier VI Strv 74
+
+Of the Swedish line, the 
+`r md_link_tier(update=update_ver, tier=6)` 
+**`r md_link_tank(tank_names='Strv 74', update=update_ver)`** 
+seems performing below the average. I liked it personally, but based on 
+the numbers it does not perform that well. 
+
+```{r fig_tank_relativeWR_Strv_74}
+tank_id     <- get_tank_id('Strv 74')
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_relativeWR(stats = stats, tank_id = tank_id, update = update_ver)
+```
+
+## Tier VII Leo
+
+The `r md_link_tier(update=update_ver, tier=7)` 
+**`r md_link_tank(tank_names='Leo', update=update_ver)`** seems performing 
+also below the average for the better players. I liked it personally, but 
+maybe its lowish DPM (still higher than the T20) pushed the Relative WR down. 
+
+```{r fig_tank_relativeWR_Leo}
+tank_id     <- get_tank_id('Leo')
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_relativeWR(stats = stats, tank_id = tank_id, update = update_ver)
+```
+
+## Tier VIII Emil I
+
+The `r md_link_tier(update=update_ver, tier=8)` 
+**`r md_link_tank(tank_names='Emil I', update=update_ver)`** is the gem of 
+the line and currently the best performing tier VIII _Tech Tree_ heavy tank. Players 
+have been crying it needs to nerfed, but let's remember that the Emil I is only the 
+`r md_link_tier_tank_type(update=update_ver, tier=8, tank_type = 'Heavy Tank', link_text="4th best performing tier VIII heavy tank", rel_link="#the-best-performing-tanks")`.
+Its superior performance on the battlefield is also greatly contributed 
+by its better-than-average player population (3.9% higher  average WR vs. all tier VIII heavy tanks).
+
+```{r fig_tank_relativeWR_Emil_I}
+tank_id     <- get_tank_id('Emil I')
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_relativeWR(stats = stats, tank_id = tank_id, update = update_ver)
+```
+
+
+```{r fig_tank_player_base_Emil_I}
+tank_id     <- get_tank_id('Emil I')
+
+plot_tank_player_base(stats = stats, tank_id = tank_id, update = update_ver)
+```
+
+
+
+## Tier IX Emil II 
+
+The `r md_link_tier(update=update_ver, tier=9)` 
+**`r md_link_tank(tank_names='Emil II', update=update_ver)`** performed very 
+much the average. I would say the EMil II is _perfectly balanced_. 
+
+```{r fig_tank_relativeWR_Emil_II}
+tank_id     <- get_tank_id('Emil II')
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_relativeWR(stats = stats, tank_id = tank_id, update = update_ver)
+```
+## Tier X Kranvagn
+
+The `r md_link_tier(update=update_ver, tier=10)` 
+**`r md_link_tank(tank_names='Kranvagn', update=update_ver)`** was an disappointment 
+for many and it performs the average (below the average for good players). WG 
+often tends to launch new lines with borderline OP-performance. It might be 
+that WG  thought the [Kranvagn](/update/`r update_ver`/10/tanks/4481/) has so 
+much positives that players would play it in any case, and they decided to 
+launch it as _balanced_. Launching a new line balanced feels almost like 
+launching it _nerfed_ since the standard is borderline-OP. 
+
+```{r fig_tank_relativeWR_Kranvagn}
+tank_id     <- get_tank_id('Kranvagn')
+tank_type  	<- get_tank_type(tank_id)
+tank_types  <- paste0(tank_type, 's')
+tierN 			<- get_tank_tier(tank_id)
+stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_relativeWR(stats = stats, tank_id = tank_id, update = update_ver)
+```

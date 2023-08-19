@@ -1,0 +1,40 @@
+---
+title: "Update 7.6 final stats added "
+linktitle: "2021-02-27 Update 7.6 final stats added"
+date: `r today("UTC")`
+publishdate: 2021-02-27
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "post", "7.6"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = 'svglite', fig.ext = 'svgz');
+update_ver = '7.6'
+stopifnot(all(exists("stats.update"), update_ver == update))
+stats.update.perf <- get_stats_tank_perf.rWR(stats.update)
+```
+
+Final stats for `r md_link_update(update=update_ver)` have been added. 
+
+* `r md_link_update(update=update_ver)` marked a great milestone for the site. BlitzAnalysiz[] 
+is now tracking the performance of more than [**1 million players**](/blog/2021-02-27_1m_accounts/)! 
+
+* In total, there were 328M battles by 515k players recorded in the database during 
+the `r md_link_update(update=update_ver)`. 
+
+```{r fig_tanks_top_averageWR}
+plot_averageWR(stats = stats.update.perf, update = update_ver);
+```
+
+* `r md_link_tank(tank_names='T28 Concept', update=update_ver)` retook the #1 spot 
+after `r md_link_tank(tank_names='T54E2', update=update_ver)` and 
+`r md_link_tank(tank_names='AT 15A', update=update_ver)`. There are not any Tech Tree 
+tanks in TOP 5 and only two in TOP 10.  
+
+```{r fig_tanks_top_relativeWR}
+plot_relativeWR(stats = stats.update.perf, update = update_ver);
+```

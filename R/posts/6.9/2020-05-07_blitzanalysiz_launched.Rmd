@@ -1,0 +1,32 @@
+---
+title: "BlitzAnalysiz.com launched"
+linktitle: "2020-05-07 BlitzAnalysiz.com launched"
+publishdate: "2020-05-07"
+layout: "post"
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "Post" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Hy! 
+
+[BlitzAnalysiz.com](/) is a site about in-depth game statistics of 
+[Wargaming's](https://wargaming.com) [World of Tanks Blitz](https://wotblitz.eu/). 
+You won't find individial player statistics here - for those, please check awesome 
+[Blitzstars.com](https://blitzstars.com). Instead, the the site is about analysis 
+of the player population and tank performance statistics. <!--more-->
+
+The statistics shown at the site are based on maybe the largest collection of Blitz 
+player stats outside Wargaming's servers containing over 100 million individual tank 
+statistics from more than 600,000 players from EU, RU, Asia and North American servers. 
+
+BlitzAnalysiz[] is build by [Jylpah@EU](https://www.blitzstars.com/player/eu/Jylpah). 
+You can reach out me via email ([Jylpah@gmail.com](mailto:jylpah@gmail.com)), Discord (Jylpah#4662). 
+I am also active at [WoT Blitz EU forums](http://forum.wotblitz.eu/index.php?/forum/19-gameplay/).

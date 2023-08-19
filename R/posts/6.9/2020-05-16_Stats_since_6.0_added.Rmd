@@ -1,0 +1,153 @@
+---
+title: "Stats since update 6.0 added"
+linktitle: "2020-05-16 Stats since update 6.0 added"
+date: `r today("UTC")`
+publishdate: 2020-05-16
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+alwaysopen: false
+hidden: true
+tags: [ "post", "6.0" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, dev = 'svglite', fig.ext = 'svgz')
+update_ver <- '6.9'
+stopifnot(all(exists("stats.update"), update_ver == update))
+res <- stats.update[, .(Battles=sum(all.battles), Players=uniqueN(account_id))]
+stats.update.perf <- get_stats_tank_perf.rWR(stats.update)
+```
+
+I have been busy cleaning up the codebase and fixing tons of little issues. Here are main updates:
+
+### Stats since update 6.0
+
+I have added stats for updates since 6.0 to the site. Please note that while 
+certain graphs like **WR vs. Battles played - update 6.0** show big differences 
+between 6.0 and 6.9, the changes in the underlying game statistics are likely 
+less, but are caused just BlitzAnalysiz[] collecting data more players and 
+especially more new/less active players.  
+
+##### Update 6.0
+
+```{r fig_update_WR_vs_battles_6.0, error=TRUE, message=FALSE}
+
+update_6.0 <- '6.0'
+stats.6.0 <- load_tank_stats_update(update_6.0)
+
+x_name='Battles'
+y_name='WR'
+fill_name = 'WR'
+title <- get_plot_title_share_of_by(y_name, x_name)
+
+res <- stats.6.0[,.('WR' = first(WR.global), 
+                      'Battles' = first(battles.global)), 
+                    by=account_id][,.N, by=.(Battles = cut(Battles, breaks = buckets.battles, include.lowest = TRUE), 
+                                             WR = cut(WR, breaks = buckets.WR, include.lowest = TRUE))][order(Battles, WR)]
+
+x_labels = auto_range_format(buckets.battles)
+fill_labels = percent_range_format(buckets.WR)
+
+plot_marimekko(res, title, update_6.0, 
+               x_name = 'Battles', fill_var = 'WR', palette.fill = palette.WN8, 
+               x_labels = x_labels, fill_labels = fill_labels)
+```
+
+
+##### Update 6.9
+
+```{r fig_update_WR_vs_battles_6.9, error=TRUE, message=FALSE}
+
+x_name 		<- 'Battles'
+y_name		<-'WR'
+fill_name <- 'WR'
+title 		<- get_plot_title_share_of_by(y_name, x_name)
+
+res <- stats.update[,.('WR' = first(WR.global), 
+                      'Battles' = first(battles.global)), 
+                    by=account_id][,.N, by=.(Battles = cut(Battles, breaks = buckets.battles, include.lowest = TRUE), 
+                                             WR = cut(WR, breaks = buckets.WR, include.lowest = TRUE))][order(Battles, WR)]
+
+x_labels = auto_range_format(buckets.battles)
+fill_labels = percent_range_format(buckets.WR)
+
+plot_marimekko(res, title, update, 
+               x_name = 'Battles', fill_var = 'WR', palette.fill = palette.WN8, 
+               x_labels = x_labels, fill_labels = fill_labels)
+```
+
+### Graph templates 
+
+Now the code is much more manageable weith new graph templates. Previously each 
+graph was a copy-paste from the previous similar one (and with little changes 
+along the line) making it hard to manage the code as I discovered issues and 
+fixed bugs.  I can now add a new graph (as long as I have a template for the 
+graph type), just with few lines of code like this: 
+
+```r
+res <- head(stats.update[DT_filter_battles_tank(all.battles, all.battles.new, tier, is_premium), .('Average WR' = mean(WR), 
+                             'Player WR' = mean(WR.global), 
+                             'Players' = uniqueN(account_id), 
+                             'Battles' = sum(all.battles), 
+                             'Premium' = first(is_premium)), 
+                         by=name ][Players >= min_players.tank][ order(-`Average WR`)],n=topN);
+res <- prep_plot_tank(res,'Average WR')
+title = get_plot_title_top_tanks('Average WR', topN = 20)
+plot_col_discrete_2Y(res,title, update, 'Tank', 'Average WR', 'Player WR', fill_var = 'Tank type')
+````
+
+{{% expand "...instead of this:" %}}
+```r
+res <- head(stats.update[, .('Avg. WR' = mean(WR), 'Player WR' = mean(WR.global), Players=uniqueN(account_id), 
+                         Battles = sum(all.battles), Premium= unique(is_premium)), 
+                         by=name ][Players >= min_players.tank][ order(-`Avg. WR`)],n=topN);
+setnames(res, 'name', 'Tank');
+res[, `Avg. WR`:=`Avg. WR` * 100];
+res[, `Player WR`:=`Player WR` * 100];
+res[Premium==TRUE,  `Tank type`:='Premium']
+res[Premium==FALSE, `Tank type`:= 'Researchable']
+res[,`Tank type` := as.factor(`Tank type`)]
+res[,Premium := NULL]
+setcolorder(res,c('Tank', 'Avg. WR','Player WR', 'Players', 'Battles', 'Tank type'));
+ggplot(res) + aes(x = reorder(Tank, `Avg. WR`, (function (x) -x)), y = `Avg. WR`, fill= `Tank type`) + 
+  geom_col(aes(group=`Tank type`)) + 
+  scale_fill_manual('Tank type', values = c('Premium'='black', 'Researchable' = 'grey')) + 
+  geom_point(aes(x = reorder(Tank, `Avg. WR`, (function (x) -x)), y=`Player WR`, 
+                 color = color.2nd_series, shape='Player WR'), shape='-', size=20, inherit.aes = FALSE) + 
+  scale_color_identity(name = NULL, guide='legend', labels= 'Player WR') + scale_x_discrete('Tank') + 
+  scale_y_continuous('Win rate', labels = div_format(seq(0,100,5),1,'%'), breaks = seq(0, 100, 5)) +
+  theme(panel.background = element_rect(fill = 'white'), plot.title = element_text(hjust = 0.5), 
+        panel.grid.minor = element_line(colour="grey", size=0.5), 
+        axis.text.x = element_text(angle = 45, hjust = 1), 
+        plot.subtitle = element_text(hjust = 1), 
+        legend.key = element_blank()) + 
+  ggtitle(paste('TOP',topN, 'Tanks by WR'), subtitle = paste("Update", update));
+````
+{{% /expand %}}
+
+In addition for the graph templates makin me happier, those ensure more consistent 
+look and feel and allow me to easily add new graphs - there is never enough of those, right?  
+
+
+### Unfiltered graphs
+
+For couple of gprahs I have added _unfiltrered_ (i.e. _all_ players) versions of 
+those. Blitz has huge number of players who just play  few games during the whole 
+update. More than 10% of the players play less than e-i-g-h-t (**8**) battles
+ during an update. And only small share of those players are ever looked 
+ at [BlitzStars](https://BlitzStars.com) or happen to be recorded into 
+ replays sent to  [WoTinspector.com](https://replays.WoTinspector.com), 
+ therefore never ending up into Blitzanalysiz.com account database. For 
+ this reason I filter players based on minimun battle count requirement for 
+ many of the graphs. Otherwise the graphs would show players with 100% WR 
+ where in fact they had only one (lucky) game during the whole update.
+
+```{r fig_update_player_WR_histogram_unfiltered}
+res <- stats.update[, .(WR = first(WR.global)), 
+                    by=account_id]
+plot_histogram(res, "Player WR distribution (all players)", update, 
+               x_name='WR', y_name='Share of Players' , 
+               x_lims= c(0, 1), x_step = 0.1, x_pct = TRUE, 
+               y_pct = TRUE, y_step = 0.01, bins = 100) 
+```

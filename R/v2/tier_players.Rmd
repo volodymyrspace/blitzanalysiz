@@ -1,0 +1,305 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = "svglite", fig.ext = "svgz")
+# Checks
+stopifnot(exists("target_page"))
+update <- get_path_elem(target_page, 2)
+preliminary <- is_preliminary(update)
+tier <- get_path_elem_int(target_page, 3)
+tierN <- tier
+tier.roman <- get_tier_roman(tier)
+min_battles.tier <- get_min_battles_tier(tier)
+min_battles.tank <- floor(min_battles.tier / 2)
+min_battles.grind <- get_grind_len(tier)
+page_weight <- 10
+
+cols.sel <- c(
+  "account_id", "tank_id", "battles", "battles.career", "battles.career.all",
+  "battles.tier.maxed", "WR.tier.maxed", "avg_dmg.tier.maxed",
+  "WR.update", "avg_kills", "WR.tier.all", "battles.tier.all",
+  "tier", "nation", "type"
+)
+stats.tier <- ds_load_ts_update(update,
+  tank_tier = tierN,
+  cols = cols.sel
+)
+stats.tier.perf <- get_stats_tank_perf(ds_load_ts_maxed(update,
+  tank_tier = tierN,
+  cols = cols.sel
+))
+
+var2rm <- c("res", "stats.tier", "stats.tier.perf")
+```
+
+---
+title: "Tier `r tier.roman` player stats"
+menutitle: "Players"
+linktitle: "Tier `r tier.roman` player stats (`r update_version(update)`)"
+date: `r today("UTC")`
+author: Jylpah@gmail.com
+disableToc: false
+hidden: true
+autohide: true
+alwaysopen: false
+output: md_document
+weight: `r page_weight`
+description: "Tier `r tier.roman` player stats in World of Tanks Blitz. Update `r update`"
+tags: [ "`r update`", "Tier `r tier.roman`", "Tier stats"  ]
+---
+
+`r update_if_final(update, '', '_Preliminary stats_')`
+
+This page list statistics of players' battles at **tier `r tier.roman` during update `r update`**.
+
+## Current WR vs. Career Battles played
+
+This graph shows players WR at the tier `r tier.roman` during the update `r update` vs. players' career battles.
+
+```{r fig_career_battles_vs_current_WR, message = FALSE}
+x_name <- "Battles"
+y_name <- "WR"
+fill_name <- "WR"
+title <- "Current WR by Career Battles"
+
+res <- stats.tier[, .(
+  "WR" = first(WR.update),
+  "Battles" = first(battles.career.all)
+),
+by = account_id
+][, .N, by = .(
+  Battles = cut(Battles,
+    breaks = buckets.battles.career,
+    include.lowest = TRUE
+  ),
+  WR = cut(WR,
+    breaks = buckets.WR,
+    include.lowest = TRUE
+  )
+)][order(Battles, WR)]
+
+x_labels <- auto_range_format(buckets.battles.career)
+fill_labels <- percent_range_format(buckets.WR)
+
+plot_marimekko(res, title, update,
+  x_name = "Battles", fill_var = "WR", palette.fill = palette.WN8,
+  x_labels = x_labels, fill_labels = fill_labels, tier = tier
+)
+```
+
+## Battles per Player
+
+Number of battles fought per player during the update `r update`.
+
+```{r fig_tier_battle_count_histogram}
+res <- stats.tier[, .(Battles = sum(battles)), by = account_id]
+
+if (tier > 5) {
+  x_breaks <- seq(0, 1000, 100)
+  bin_breaks <- seq(0, 1000, 25)
+} else {
+  x_breaks <- seq(0, 500, 50)
+  bin_breaks <- seq(0, 500, 25)
+}
+
+plot_histogram(res, "Battles played at tier per Player", update,
+  x_name = "Battles", y_name = "Share of Players %",
+  bin_breaks = bin_breaks, x_signif = 2,
+  y_pct = TRUE, y_signif = 2, x_breaks = x_breaks, mean = TRUE, tier = tier
+)
+
+s <- stats.tier[, .(Battles = sum(battles)),
+  by = account_id
+][, .(
+  mean = mean(Battles),
+  median = median(Battles),
+  max = max(Battles)
+)]
+```
+
+On average, players played `r as.integer(s$mean)` battles. Median was `r s$median` and the largest number of battles recorded by a single player (in the dataset) during the update `r update` was `r auto_format(s$max, digits = 10, no_sfx=TRUE)` battles. The following tables shows battle counts by N% most inactive players during the update.
+
+### Battles per Player table
+
+The table below shows the (max) number of battles played during `r update` by the X% most _inactive_ players. A reading tip: 10% most _active_ players played more than the 90% most _inactive_ players.
+
+{{% expand "Show table" %}}
+```{r tier_battle_count_summary, echo = FALSE}
+md_table_histogram(
+  stats.tier[, .(Battles = sum(battles)),
+    by = account_id
+  ][, Battles],
+  "Battles",
+  breaks = buckets.battles,
+  lims = c(0, 1000)
+)
+```
+{{% /expand %}}
+
+
+## Player WR distribution
+
+### Players with `r min_battles.tier`+ battles in maxed-out tanks
+
+The following graph shows a histogram of players (y-axis) with certain WR during the update `r update` (x-axis). This graph includes all the players who have played more than `r min_battles.tier` battles during the update.
+
+```{r fig_tier_player_WR_histogram}
+res <- stats.tier.perf[, .(
+  WR = first(WR.tier.maxed),
+  Battles = first(battles.tier.maxed)
+),
+by = account_id
+][Battles > min_battles.tier]
+title <- get_plot_title_subtitle("Player WR distribution", "Active players, maxed-out tanks")
+plot_histogram(res, title,
+  update,
+  x_name = "WR", y_name = "Share of Players",
+  x_lims = c(0, 1), x_step = 0.1, x_pct = TRUE,
+  y_pct = TRUE, y_steps = 10, y_signif = 2, bins = 100, tier = tier
+)
+```
+
+{{% expand "Show table" %}}
+```{r tier_player_WR_histogram, echo = FALSE}
+md_table_histogram(
+  stats.tier.perf[, .(WR = first(WR.tier.maxed)),
+    by = account_id
+  ][, WR],
+  "WR",
+  breaks = seq(0, 1, 0.01),
+  lims = c(.2, .85)
+)
+```
+{{% /expand %}}
+
+### Player WR distribution (all players)
+
+The following graph shows a histogram of players (y-axis) with certain WR during the update `r update` (x-axis). This graph includes all the players who have played during the update, even a single game. Therefore there are peaks around 25%, 33%, 50%, 67% and 75% and players with 0% or 100% WR.
+
+```{r fig_tier_player_WR_histogram_unfiltered}
+res <- stats.tier[, .(
+  WR = first(WR.tier.all),
+  Battles = first(battles.tier.all)
+),
+by = account_id
+]
+
+title <- get_plot_title_subtitle("Player WR distribution", "All players")
+
+
+plot_histogram(res, title, update,
+  x_name = "WR", y_name = "Share of Players",
+  x_lims = c(0, 1), x_step = 0.1, x_pct = TRUE,
+  y_pct = TRUE, y_steps = 10, y_signif = 2, bins = 100, tier = tier
+)
+```
+
+## Average damage distribution
+
+The following graph shows a histogram of players' average damage. Y-axis shows the share of players (%) with certain certain average damage during the update `r update` (x-axis). This graph includes all the players who have played more than `r min_battles.tier` battles with a maxed-out tank during the update.
+
+```{r fig_tier_player_avg_dmg_histogram}
+res <- stats.tier[battles.tier.maxed > min_battles.tier,
+  .(
+    "Average Damage" = first(avg_dmg.tier.maxed),
+    Battles = first(battles.tier.maxed)
+  ),
+  by = account_id
+]
+
+title <- get_plot_title_subtitle(
+  "Player Average Damage distribution",
+  "Active players, Maxed-out tanks"
+)
+
+plot_histogram(res, title, update,
+  x_name = "Average Damage", y_name = "Share of Players",
+  x_quantiles = list(NULL, .999),
+  x_pct = FALSE,
+  y_pct = TRUE, y_steps = 10, y_signif = 2,
+  bins = 100, tier = tier
+)
+```
+
+{{% expand "Show table" %}}
+```{r tier_player_avg_dmg_histogram, echo = FALSE}
+x_breaks <- get_breaks(0, quantile(res$`Average Damage`, .9999, na.rm = TRUE), steps = 20)
+x_breaks <- x_breaks$breaks
+
+md_table_histogram(res$`Average Damage`, "Average Damage",
+  breaks = x_breaks
+)
+```
+{{% /expand %}}
+
+
+## Average Damage + kills per battle vs. WR
+
+```{r fig_tier_WR_vs_avg_dmg_kpb}
+x_name <- "Average Damage"
+y_name <- "Kills/Battle"
+z_name <- "WR"
+res <- stats.tier[battles.tier.maxed > min_battles.tier,
+  .(
+    "Average Damage" = first(avg_dmg.tier.maxed),
+    "Kills/Battle" = mean(avg_kills),
+    "WR" = first(WR.tier.maxed),
+    "Battles" = first(battles.tier.maxed)
+  ),
+  by = account_id
+]
+
+title <- get_plot_title_subtitle(
+  "WR vs. Average Damage + Kills per Battle",
+  "Active players, Maxed-out tanks, Tier average"
+)
+
+plot_contour_discrete(res, title, update,
+  x_name, y_name, z_name,
+  weights = "Battles",
+  col.palette = palette.WN8,
+  col.levels = buckets.WR,
+  tier = tierN
+)
+```
+
+
+## Share of Battles per Nation per Vehicle Class
+
+This chart shows share of battles per nation per vehicle class at tier `r tier.roman`.
+
+```{r fig_tier_battles_nation_vehicle_class}
+y_name <- "Battles"
+x_name <- "Nation"
+fill_name <- "Vehicle Class"
+title <- get_plot_title_share_of_by_by(y_name, x_name, fill_name)
+res <- stats.tier[, .(N = sum(battles)),
+  by = .(
+    Nation = nation,
+    "Vehicle Class" = type
+  )
+][order(Nation, `Vehicle Class`)]
+plot_marimekko(res, title, update, x_name, fill_name, palette.fill = palette.vehicle_class)
+```
+
+## Player WR per Nation
+
+```{r fig_tier_WR_per_nation}
+res <- stats.tier[battles.tier.maxed > min_battles.tier,
+  .(WR = mean(WR.tier.maxed)),
+  by = .(nation, account_id)
+][, .N, by = .(
+  Nation = nation,
+  WR = cut(WR,
+    breaks = buckets.WR,
+    include.lowest = TRUE
+  )
+)][order(Nation, WR)]
+plot_col_share_discrete(res, "Player WR per Nation", update,
+  x_name = "Nation", fill_var = "WR",
+  tier = tier, y_buckets = buckets.WR
+)
+```
+
+```{r clean_up, include=FALSE}
+rm(list = var2rm)
+gc(verbose = FALSE)
+```

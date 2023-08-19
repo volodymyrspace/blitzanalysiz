@@ -1,0 +1,77 @@
+---
+title: "Did the HT HP buff impact the game?"
+linktitle: "2021-03-13 HT HP buff"
+date: `r today("UTC")`
+publishdate: 2020-XX-YY
+author: Jylpah@gmail.com
+disableToc: false
+output: md_document
+weight: page_weight
+alwaysopen: false
+hidden: true
+tags: [ "post" ]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = 'svglite', fig.ext = 'svgz');
+```
+
+Post text goes here. 
+
+### Tier X before / after the heavy tank HP buff
+
+```{r fig_vehicle_classes_tier10_Relative_WR_before, results=FALSE}
+tierN <- 10
+update.old <- '6.8'
+stats.old <- load_tank_stats_update(update.old)
+stats.tier <- get_stats.update.tier(tierN, stats.old)
+stats.tier <- get_stats_tank_perf(stats.tier)
+Nplayers <- stats.tier[DT_filter_enough_battles.rWR(stats.tier)  & 
+                               (WR.tier.maxed > .55) & (WR.tier.maxed <= .65), uniqueN(account_id)]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier)
+#                         & (WR.tier.maxed > .55) & (WR.tier.maxed <= .65)
+                         , .('Relative WR'  = mean(rWR), 'Vehicle Class'= first(type), Players=.N),
+                         by=.('Tank'= name) ][Players > 0.005 * Nplayers, 
+                                              .('Relative WR'  = mean(`Relative WR`)), 
+                                              by=`Vehicle Class` ]
+
+x_name <- 'Vehicle Class'
+y_name <- 'Relative WR'
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle('Tier X Relative WR by Vehicle Class',  'Player WR at the tier X 55-65%')
+plot_col_discrete_1Y(res, title, update.old, x_name, y_name, y_pct = TRUE, 
+                     palette.fill = palette.vehicle_class, fill_var = 'Vehicle Class')
+```
+
+
+```{r fig_vehicle_classes_tier10_Relative_WR_after, results=FALSE}
+tierN <- 10
+update.old <- '6.9'
+stats.old <- load_tank_stats_update(update.old)
+stats.tier <- get_stats.update.tier(tierN, stats.old)
+stats.tier <- get_stats_tank_perf(stats.tier)
+Nplayers <- stats.tier[DT_filter_enough_battles.rWR(stats.tier) 
+#                                & (WR.tier.maxed > .55) & (WR.tier.maxed <= .65)
+                             , uniqueN(account_id)]
+
+# res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier),
+#                          .('Relative WR'  = mean(rWR)), by=.('Vehicle Class'= type) ]
+
+res <- stats.tier[DT_filter_enough_battles.rWR(stats.tier)  & 
+                    (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+                  .('Relative WR'  = mean(rWR), 'Vehicle Class'= first(type), Players=.N),
+                   by=.('Tank'= name)][Players > 0.005 * Nplayers, 
+                                        .('Relative WR'  = mean(`Relative WR`)), 
+                                          by=`Vehicle Class`]
+
+x_name <- 'Vehicle Class'
+y_name <- 'Relative WR'
+res <- prep_plot_tank(res, y_name)
+title <- get_plot_title_subtitle('Tier X Relative WR by Vehicle Class', 'Player WR at the tier X 55-65%')
+plot_col_discrete_1Y(res, title, update.old, x_name, y_name, y_pct = TRUE, 
+                     palette.fill = palette.vehicle_class, fill_var = 'Vehicle Class')
+```
