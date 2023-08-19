@@ -33,16 +33,21 @@ disableToc: false
 
 `r update_if_final(update, '', '_Preliminary stats_')`
 
+```{r career_info, echo = FALSE}
+res <- stats.career[, .(Battles = first(battles.career.all)),
+    by = account_id
+]
+players <- nrow(res)
+```
+
 This page shows statistics of players' battles fought during their Blitz "career" until the end of **update `r update`**. 
+In total, `r auto_format(players)` players played during update `r update`.
 
 ## Battles per Player
 
 Number of career/cumulative battles per player in the end of the update `r update`.
 
 ```{r fig_career_battle_count_histogram}
-res <- stats.career[, .(Battles = first(battles.career.all)),
-    by = account_id
-]
 plot_histogram(res, "Career Battles per Players", update,
     "Battles", "Share of Players %",
     x_lims = c(0, 100e3), x_step = 5000, y_step = 2.5 / 100, x_signif = 2,
@@ -52,13 +57,18 @@ plot_histogram(res, "Career Battles per Players", update,
 res <- res[, .(mean = mean(Battles), median = median(Battles), max = max(Battles))]
 ```
 
-An average player has played `r as.integer(res$mean)` battles by the end of update `r update`. Median battle count was `r res$median` and the largest number of battles recorded by a single player (in the dataset) was `r auto_format(res$max)` battles. The following tables shows battle counts by N% most inactive players during the update (i.e. "90% most inactive" == "10% most active"). 
+An average player has played `r as.integer(res$mean)` battles by the end of update `r update`. 
+Median battle count was `r res$median` and the largest number of battles recorded by a single 
+player (in the dataset) was `r auto_format(res$max)` battles. The following tables shows battle 
+counts by N% most inactive players during the update (i.e. "90% most inactive" == "10% most active"). 
 
 ### Battles per Player table
 
 {{% expand "Show table" %}}
 
-The table below shows the (max) number of battles played until the end of `r update` by the X% most _inactive_ players. Reading tip: 10% most _active_ players have played more than the 90% most _inactive_ players.
+The table below shows the (max) number of battles played until the end of `r update` by the 
+X% most _inactive_ players. Reading tip: 10% most _active_ players have played more than the 
+90% most _inactive_ players.
 
 ```{r career_battle_count_summary, echo = FALSE}
 md_table_quantiles(stats.career[, .(Battles = first(battles.career.all)),
@@ -69,10 +79,12 @@ md_table_quantiles(stats.career[, .(Battles = first(battles.career.all)),
 
 ## Player WR distribution
 
-The following graph shows a histogram of players (y-axis) with certain career WR (x-axis). 
+The following graph shows a histogram of players (y-axis) based on their career WR (x-axis). 
+Only players with `r min_battles.career` battles or more are included.
 
 ```{r fig_career_player_WR_histogram}
-res <- stats.career[, .(WR = first(WR.career.all)),
+res <- stats.career[battles.career.all >= min_battles.career,
+    .(WR = first(WR.career.all)),
     by = account_id
 ]
 plot_histogram(res, "Player Career WR distribution", update,
