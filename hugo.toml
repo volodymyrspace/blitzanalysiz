@@ -1,6 +1,6 @@
 baseURL = 'https://blitzanalysiz.com/'
 languageCode = 'en-us'
-title = 'BlitzAnalysiz() - In-depth analysis of WoT Blitz game statistics'
+title = 'BlitzAnalysiz[] - In-depth analysis of WoT Blitz game statistics'
 
 # Change the default theme to be use when building the site with Hugo
 theme = "hugo-theme-relearn"
