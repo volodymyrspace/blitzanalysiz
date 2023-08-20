@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# remove links to old updates
+
+# update tank links to Latest update
+
+for FILE in "$@"; do
+	echo "processing: ${FILE}"
+	sed -E -i 's/\/update\/[[:digit:]\.]+\/([[:digit:]]{1,2}\/tanks\/)/\/update\/latest\/\1/g' "${FILE}"
+
+	# remove links to update content
+	sed -E -i 's/([^!])\[([^]]+)\]\(\/update\/[[:digit:]][^\)]+\)/\1\2/g' "${FILE}"
+	sed -E -i 's/^\[([^]]+)\]\(\/update\/[[:digit:]][^\)]+\)/\1/g' "${FILE}"
+done
