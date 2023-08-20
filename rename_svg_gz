@@ -1,0 +1,16 @@
+#!/bin/sh
+
+# Rename SVG.GZ images
+
+message() {
+        msg="$*"
+        printf "\033[0;32m${msg}\033[0m\n"
+}
+
+message "Rename SVG.GZ files to .SVGZ"
+
+find content -type f -name '*.svg.gz' -print0 | xargs -0 rename -e 's/\.svg\.gz/.svgz/'
+
+message "Update links in Markdown files" 
+
+find content -type f -name '_index.md' -print0 | xargs -0 sed -i 's/\.svg\.gz)/.svgz)/g' 
