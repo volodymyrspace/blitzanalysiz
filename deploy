@@ -25,7 +25,7 @@ GIT=1
 SVGZ=1
 CLEAN_DIR=""
 
-while getopts 'hebgsc' option
+while getopts 'hebgzc' option
 do
   case "$option" in
     	h)
@@ -40,7 +40,7 @@ do
 	g)
 		GIT=0
 		;;
-	s)
+	z)
 		SVGZ=0
 		;;
 
@@ -95,9 +95,11 @@ message "Cleaning up search index"
 ## Search index
 [ -d "../tmp" ]  ||  mkdir ../tmp
 
-cp index.json ../tmp/
-jq --arg LATEST "/update/${LATEST}/" '[.[] | (select(.uri | test("/update/") |not ) | .), (select(.uri |test($LATEST)) | . ) | .uri |= sub($LATEST;"/update/latest/") ]'  ../tmp/index.json > index.json
-
+if cp index.json ../tmp/ 2> /dev/null; then
+	jq --arg LATEST "/update/${LATEST}/" '[.[] | (select(.uri | test("/update/") |not ) | .), (select(.uri |test($LATEST)) | . ) | .uri |= sub($LATEST;"/update/latest/") ]'  ../tmp/index.json > index.json
+else
+	message "Could not clean up search index"
+fi
 
 if [ ${GIT} -eq "1" ]; then
 	# Add changes to git.
