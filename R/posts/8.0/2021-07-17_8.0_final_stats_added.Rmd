@@ -12,10 +12,10 @@ tags: [ "post", "8.0" ]
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi= 150, echo = FALSE, dev = 'svglite', fig.ext = 'svgz');
-update_ver = '8.0'
+knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = "svglite", fig.ext = "svgz")
+update_ver <- "8.0"
 stopifnot(all(exists("stats.update"), update_ver == update))
-res <- stats.update[, .(Battles=sum(all.battles), Players=uniqueN(account_id))]
+res <- stats.update[, .(Battles = sum(all.battles), Players = uniqueN(account_id))]
 stats.update.perf <- get_stats_tank_perf.rWR(stats.update)
 ```
 
@@ -27,7 +27,7 @@ the `r md_link_update(update=update_ver)`.
 * Not much changes in the best performing tanks:
 
 ```{r fig_tanks_top_RelativeWR}
-plot_relativeWR(stats = stats.update.perf, update = update_ver);
+plot_relativeWR(stats = stats.update.perf, update = update_ver)
 ```
 
 ### New American heavies
@@ -43,9 +43,9 @@ The `r md_link_tier(update=update_ver, tier=7)`
 but it seems to have performed pretty poorly on average. 
 
 ```{r fig_tanks_tier7_heavy_RelativeWR}
-tank_type  	<- 'Heavy Tank'
-tierN 			<- 7
-stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+tank_type <- "Heavy Tank"
+tierN <- 7
+stats <- subset(stats.update.perf, tier == tierN & type == tank_type)
 plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
 ```
 
@@ -57,9 +57,9 @@ was introduced as a very balanced tank. In other words it is performing below-av
 I found the tank pretty decent. 
 
 ```{r fig_tanks_tier8_heavy_RelativeWR}
-tank_type  	<- 'Heavy Tank'
-tierN 			<- 8
-stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+tank_type <- "Heavy Tank"
+tierN <- 8
+stats <- subset(stats.update.perf, tier == tierN & type == tank_type)
 plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
 ```
 
@@ -69,9 +69,9 @@ The `r md_link_tier(update=update_ver, tier=9)` `r md_link_tank(tank_names='M-V-
 was not so fun tank to play due to its enormous reload time. It performed bit below average. 
 
 ```{r fig_tanks_tier9_heavy_RelativeWR}
-tank_type  	<- 'Heavy Tank'
-tierN 			<- 9
-stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+tank_type <- "Heavy Tank"
+tierN <- 9
+stats <- subset(stats.update.perf, tier == tierN & type == tank_type)
 plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
 ```
 
@@ -87,9 +87,9 @@ reload to make it more competitive. There is already
 three-shot gun feels bit "meh" (IMO) - even it performs better.
 
 ```{r fig_tanks_tier10_heavy_RelativeWR}
-tank_type  	<- 'Heavy Tank'
-tierN 			<- 10
-stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
+tank_type <- "Heavy Tank"
+tierN <- 10
+stats <- subset(stats.update.perf, tier == tierN & type == tank_type)
 plot_tier_tank_type_relativeWR(stats = stats, update = update_ver, tank_type = tank_type, tier = tierN)
 ```
 
@@ -98,12 +98,14 @@ performing well on the battlefield, it is probably since it has been driven by
 better than average players:
 
 ```{r fig_player_base_M_VI_Yoh}
-tank_id     <- get_tank_id('M-VI-Yoh')
-tank_type  	<- get_tank_type(tank_id)
-tank_types  <- paste0(tank_type, 's')
-tierN 			<- get_tank_tier(tank_id)
-stats 			<- subset(stats.update.perf, tier == tierN & type == tank_type)
-plot_tank_player_base(stats = stats, tank_id = tank_id, 
-                      title.avg = paste('Tier', get_tier_roman(tierN), tank_types), 
-                      update = update_ver)
+tank_id <- get_tank_id("M-VI-Yoh")
+tank_type <- get_tank_type(tank_id)
+tank_types <- paste0(tank_type, "s")
+tierN <- get_tank_tier(tank_id)
+stats <- subset(stats.update.perf, tier == tierN & type == tank_type)
+plot_tank_player_base(
+    stats = stats, tank_id = tank_id,
+    title.avg = paste("Tier", get_tier_roman(tierN), tank_types),
+    update = update_ver
+)
 ```
