@@ -18,7 +18,7 @@ Welcome to BitzAnalysiz[], a site about **in-depth analysis of
 
 ## Latest posts
 ```
-{{/* posts sort="PublishDate" showhidden=true description=true style="posts" */}}
+{{% posts sort="PublishDate" showhidden=true description=true style="posts" /%}}
 ```
 ## Other great WoT Blitz sites
 
