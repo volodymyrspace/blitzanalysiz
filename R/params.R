@@ -15,7 +15,7 @@ buckets.WR.narrow <- c(0, .10, .20, .30, .35, .40, .45, .50, .55, .60, .65, .70,
 buckets.WR.10 <- c(0, .30, .40, .50, .60, .70, 1)
 buckets.WR.10.narrow <- seq(0, 1, .10)
 buckets.battles <- c(0, 10, 25, 50, 100, 250, 500, 750, 1000, 1500, 1e8)
-buckets.battles.career <- c(0, 1000, 2500, 5e3, 7500, 10e3, 15e3, 20e3, 30e3, 50e3, 1e8)
+buckets.battles.career <- c(0, 500, 1000, 2500, 5e3, 7500, 10e3, 15e3, 25e3, 50e3, 1e8)
 
 
 tank_types <- c("lightTank", "mediumTank", "heavyTank", "AT-SPG")
