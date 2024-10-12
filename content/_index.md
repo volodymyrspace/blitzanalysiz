@@ -1,8 +1,8 @@
 ---
-archetype: "home"
-title: BlitzAnalysiz[] 
+title: BlitzAnalysiz[]
 menutitle: Home
-date: 2023-09-27
+archetype: "home"
+date: 2024-09-30
 author: Jylpah@gmail.com
 disableToc: false
 output: md_document
@@ -10,6 +10,7 @@ weight: 1
 alwaysopen: true
 description: "Stats analysis of World of Tanks Blitz mobile tank game"
 ---
+
 
 Welcome to BitzAnalysiz[], a site about **in-depth analysis of 
 [World of Tanks Blitz](https://wotblitz.com) game statistics**. You should be automatically taken to 

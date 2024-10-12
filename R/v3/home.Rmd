@@ -1,6 +1,7 @@
 ---
-title: BlitzAnalysiz[] 
+title: BlitzAnalysiz[]
 menutitle: Home
+archetype: "home"
 date: `r today("UTC")`
 author: Jylpah@gmail.com
 disableToc: false
@@ -12,7 +13,6 @@ description: "Stats analysis of World of Tanks Blitz mobile tank game"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = "svglite", fig.ext = "svgz")
 ```
-# BlitzAnalysiz[] 
 
 Welcome to BitzAnalysiz[], a site about **in-depth analysis of 
 [World of Tanks Blitz](https://wotblitz.com) game statistics**. You should be automatically taken to 

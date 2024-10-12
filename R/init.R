@@ -102,7 +102,7 @@ mongo_options(log_level = 2) # 2 = WARNING see ?mongo_options
 
 updates <- get_blitz_updates()
 updates.all <- get_updates(since = "6.0", preliminary)
-updates.build.updates <- get_updates(since = "9.5", preliminary)
+updates.build.updates <- get_updates(since = "10.0", preliminary)
 updates.build.blog <- updates.all
 update.first_with_stats <- "5.4"
 update.latest <- get_latest_update(preliminary)
