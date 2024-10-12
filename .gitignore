@@ -80,3 +80,7 @@ R/config.R
 # Hugo
 .hugo_build.lock
 *.mod
+
+# GitGuardian
+.gitguardian.yaml
+.cache_ggshield
