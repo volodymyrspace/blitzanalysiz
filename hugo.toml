@@ -23,9 +23,9 @@ path = 'hugo-theme-relearn'
 unsafe = true
 
 [sitemap]
-changeFreq = 'monthly'
+# changeFreq = 'monthly'
 filename = 'sitemap.xml'
-priority = -1
+priority = 0
 
 [params]
 # This controls whether submenus will be expanded (true), or collapsed (false) in the
