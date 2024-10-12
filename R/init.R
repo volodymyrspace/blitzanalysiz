@@ -20,43 +20,43 @@ base_dir <- getwd()
 OS <- Sys.info()[["sysname"]]
 
 if (OS == "Linux") {
-    options(rgl.useNULL = TRUE)
+  options(rgl.useNULL = TRUE)
 } else if (OS == "Windows") {
-    #
+  #
 } else {
-    warning(paste("Unknown OS:", OS))
+  warning(paste("Unknown OS:", OS))
 }
 ## Future
 options(
-    encoding = "UTF-8",
-    future.globals.maxSize = 100e9,
-    future.fork.multithreading.enable = FALSE,
-    future.wait.timeout = 120,
-    future.rng.onMisuse = "ignore",
-    future.debug = FALSE
+  encoding = "UTF-8",
+  future.globals.maxSize = 100e9,
+  future.fork.multithreading.enable = FALSE,
+  future.wait.timeout = 120,
+  future.rng.onMisuse = "ignore",
+  future.debug = FALSE
 )
 
 ## Packages
 # old <- c('showtext', 'Cairo')
 
 pkgs.loop <- c(
-    "rlist", "bit64", "lubridate", "matrixStats",
-    "ggplot2", "ggtext", "ggrepel", "knitr", "blogdown", "foreach",
-    "markdown", "rmarkdown", "svglite", "systemfonts", "extrafont", "qs",
-    "tictoc", "stats", "graphics", "reshape2", "stringr", "gMOIP",
-    "future", "data.table", "arrow", "dplyr"
+  "rlist", "bit64", "lubridate", "matrixStats",
+  "ggplot2", "ggtext", "ggrepel", "knitr", "blogdown", "foreach",
+  "markdown", "rmarkdown", "svglite", "systemfonts", "extrafont", "qs",
+  "tictoc", "stats", "graphics", "reshape2", "stringr", "gMOIP",
+  "future", "data.table", "arrow", "dplyr"
 )
 
 pkgs <- c(
-    pkgs.loop, "doParallel", "Hmisc", "mongolite", "progress",
-    "RhpcBLASctl", "httr", "ndjson", "jsonlite"
+  pkgs.loop, "doParallel", "Hmisc", "mongolite", "progress",
+  "RhpcBLASctl", "httr", "ndjson", "jsonlite"
 )
 
 # font_import(paths = "/usr/share/fonts/",prompt = F)
 
 for (pkg in pkgs) {
-    eval(parse(text = paste("suppressPackageStartupMessages(library(", pkg, "))")))
-    print(paste("Loaded:", pkg, "Version:", packageVersion(pkg)))
+  eval(parse(text = paste("suppressPackageStartupMessages(library(", pkg, "))")))
+  print(paste("Loaded:", pkg, "Version:", packageVersion(pkg)))
 }
 
 # Load variables
@@ -72,23 +72,23 @@ set_threads(n_threads)
 
 # Mongo
 URI <- sprintf(
-    "mongodb://%s:%s@%s/?sockettimeoutms=3600000",
-    db_user, db_passwd, db_host
+  "mongodb://%s:%s@%s/?sockettimeoutms=3600000",
+  db_user, db_passwd, db_host
 )
 ssl_opts <- NULL
 if (db_tls) {
-    URI <- paste0(URI, "&tls=true")
-    if (OS == "Linux") {
-        ssl_opts <- ssl_options(
-            ca = db_ca, cert = db_cert, key = db_key,
-            allow_invalid_hostname = allow_invalid_hostname,
-            weak_cert_validation = weak_cert_validation
-        )
-    } else if (OS == "Windows") {
-        ssl_opts <- ssl_options()
-    } else {
-        warning(paste("Unknown OS:", OS))
-    }
+  URI <- paste0(URI, "&tls=true")
+  if (OS == "Linux") {
+    ssl_opts <- ssl_options(
+      ca = db_ca, cert = db_cert, key = db_key,
+      allow_invalid_hostname = allow_invalid_hostname,
+      weak_cert_validation = weak_cert_validation
+    )
+  } else if (OS == "Windows") {
+    ssl_opts <- ssl_options()
+  } else {
+    warning(paste("Unknown OS:", OS))
+  }
 }
 
 # WG_tank_stats <- mongo('WG_TankStats', 'BlitzStats', URI, verbose = TRUE, options = ssl_opts);
