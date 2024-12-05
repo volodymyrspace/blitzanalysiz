@@ -3,6 +3,7 @@
 # Functions for Arrow datasets
 #
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+library("arrow")
 source("R/utils_blitz.R")
 
 ds_filename_career_before <- function(update) {
@@ -215,6 +216,13 @@ ds_calc_tank_stats <- function(DT) {
 
   return(DT)
 } # function
+
+ds_export <- function(DT, filename, ds_format = "parquet") {
+  write_dataset(DT, filename,
+    format = ds_format,
+    partitioning = c("tier"),
+  )
+}
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
