@@ -282,6 +282,7 @@ ds_gen_tank_stats_update <- function(update = get_latest_update(),
 
     accounts_active <- as.data.frame(merge(accounts.career, accounts.update, all = TRUE))
     rm(accounts.update, accounts.career)
+    accounts_active$account_id <- as.integer64(accounts_active$account_id)
     message("reading chunk ", I_split + 1, "/", N_split)
     ## Calculate datasets to merge
     DT.update <- as.data.table(ds.update_totals %>%
