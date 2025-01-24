@@ -3,6 +3,7 @@
 # Functions for Arrow datasets
 #
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+library("arrow")
 source("R/utils_blitz.R")
 
 ds_filename_career_before <- function(update) {
@@ -216,6 +217,13 @@ ds_calc_tank_stats <- function(DT) {
   return(DT)
 } # function
 
+ds_export <- function(DT, filename, ds_format = "parquet") {
+  write_dataset(DT, filename,
+    format = ds_format,
+    partitioning = c("tier"),
+  )
+}
+
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # ds_gen_tank_stats_update()
@@ -274,6 +282,7 @@ ds_gen_tank_stats_update <- function(update = get_latest_update(),
 
     accounts_active <- as.data.frame(merge(accounts.career, accounts.update, all = TRUE))
     rm(accounts.update, accounts.career)
+    accounts_active$account_id <- as.integer64(accounts_active$account_id)
     message("reading chunk ", I_split + 1, "/", N_split)
     ## Calculate datasets to merge
     DT.update <- as.data.table(ds.update_totals %>%

@@ -18,11 +18,11 @@ if (test_build) cat("\n## TEST BUILD     ####################\n\n")
 tic("Total rebuild time")
 
 if (is.null(updates.build)) {
-    if (build.latest_only) {
-        updates.build <- get_latest_update(preliminary)
-    } else {
-        updates.build <- get_updates(since = "8.0", preliminary)
-    }
+  if (build.latest_only) {
+    updates.build <- get_latest_update(preliminary)
+  } else {
+    updates.build <- get_updates(since = "11.0", preliminary)
+  }
 }
 
 updates.no_build <- NULL
@@ -42,62 +42,62 @@ pl.main <- pl_make_main()
 pl_build(pl.main, update.latest, force = force.update)
 
 for (update in rev(updates.build)) {
-    tic(paste("Update", update))
-    message("Building update ", update)
+  tic(paste("Update", update))
+  message("Building update ", update)
 
-    if (update %in% updates.build.updates) {
-        # update
-        pl.update.main <- pl_make_update_main(update, career = TRUE)
-        pl_build(pl.update.main, update, force = force.update)
+  if (update %in% updates.build.updates) {
+    # update
+    pl.update.main <- pl_make_update_main(update, career = TRUE)
+    pl_build(pl.update.main, update, force = force.update)
 
-        for (tierN in seq(10)) {
-            message("Building update ", update, " tier ", get_tier_roman(tierN))
-            tic(paste("Update", update, "tier", get_tier_roman(tierN)))
-            # Tier main
-            pl <- pl_make_tiers_main(update, tiers = tierN)
-            pl <- pl_merge(pl, pl_make_tank_list(update, tiers = tierN))
-            pl <- pl_merge(pl, pl_make_tiers_types(update, tiers = tierN))
-            pl <- pl_merge(pl, pl_make_tiers_premiums(update, tiers = tierN))
-            pl <- pl_requires_rebuild(pl, force = force.update, update = update)
+    for (tierN in seq(10)) {
+      message("Building update ", update, " tier ", get_tier_roman(tierN))
+      tic(paste("Update", update, "tier", get_tier_roman(tierN)))
+      # Tier main
+      pl <- pl_make_tiers_main(update, tiers = tierN)
+      pl <- pl_merge(pl, pl_make_tank_list(update, tiers = tierN))
+      pl <- pl_merge(pl, pl_make_tiers_types(update, tiers = tierN))
+      pl <- pl_merge(pl, pl_make_tiers_premiums(update, tiers = tierN))
+      pl <- pl_requires_rebuild(pl, force = force.update, update = update)
 
-            if (length(pl) > 0) {
-                # add tank pages only after update test since some tanks always fail the requires_rebuild test
-                pl <- pl_merge(pl, pl_make_tanks(update, tiers = tierN))
+      if (length(pl) > 0) {
+        # add tank pages only after update test since some tanks always fail the requires_rebuild test
+        pl <- pl_merge(pl, pl_make_tanks(update, tiers = tierN))
 
-                cols <- c(
-                    "account_id", "tank_id", "battles", "battles.career",
-                    "region", "name", "tier", "nation", "type", "is_premium", "WR",
-                    "rWR", "WR.tier.maxed", "battles.tier.maxed", "avg_dmg", "avg_kills",
-                    "spot_rate", "hit_rate", "shots", "survival_rate", "battle_life_time"
-                )
+        cols <- c(
+          "account_id", "tank_id", "battles", "battles.career",
+          "region", "name", "tier", "nation", "type", "is_premium", "WR",
+          "rWR", "WR.tier.maxed", "battles.tier.maxed", "avg_dmg", "avg_kills",
+          "spot_rate", "hit_rate", "shots", "survival_rate", "battle_life_time"
+        )
 
-                stats.tier <- ds_load_ts_update(update,
-                    tank_tier = tierN,
-                    cols = cols
-                )
-                stats.tier.perf <- get_stats_tank_perf(stats.tier)
+        stats.tier <- ds_load_ts_update(update,
+          tank_tier = tierN,
+          cols = cols
+        )
+        stats.tier.perf <- get_stats_tank_perf(stats.tier)
 
-                pl_build_auto(pl, update,
-                    build.type = build.type,
-                    force = force.update,
-                    sorted = TRUE,
-                    n_cores = n_cores.default,
-                    ex.vars = c("stats.tier", "stats.tier.perf")
-                )
-                rm("stats.tier.perf", "stats.tier")
-                gc(verbose = FALSE)
-            }
-            # players
-            pl_build(pl_make_tiers_players(update, tiers = tierN))
+        pl_build_auto(pl, update,
+          build.type = build.type,
+          force = force.update,
+          sorted = TRUE,
+          n_cores = n_cores.default,
+          ex.vars = c("stats.tier", "stats.tier.perf")
+        )
+        rm("stats.tier.perf", "stats.tier")
+        gc(verbose = FALSE)
+      }
+      # players
+      pl_build(pl_make_tiers_players(update, tiers = tierN))
 
-            toc_()
-        } # for tier
-    } # if (update %in% updates.build.updates)
+      toc_()
+    } # for tier
+  } # if (update %in% updates.build.updates)
 
-    # blog posts
-    pl.blog <- pl_make_blog_posts(update)
-    pl_build(pl.blog, update, force = force.update, sorted = TRUE)
-    toc_()
+  # blog posts
+  pl.blog <- pl_make_blog_posts(update)
+  pl_build(pl.blog, update, force = force.update, sorted = TRUE)
+  toc_()
 } # for update
 
 dir.create(file.path("content", "tags"), showWarnings = FALSE)

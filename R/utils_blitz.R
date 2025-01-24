@@ -4,6 +4,7 @@ source("R/utils_knitr.R")
 source("R/utils_plot.R")
 ## R functions
 
+library("primes")
 
 get_stats.update.tier <- function(tierN = NULL, DT = NULL) {
   stopifnot(!is.null(tierN))
@@ -1839,6 +1840,16 @@ accounts_active_since <- function(DT, update_ver = get_latest_update(), last_bat
 
 # Anonymize tank-stats
 anonymize_accounts <- function(DT) {
+  regions <- DT[, unique(region)]
+  primes_vec <- primes::generate_primes(min = 13, max = 11e8)
+  for (r in regions) {
+    salt <- sample(primes_vec, 1)
+    id_min <- regions_account_ids[[r]][1]
+    id_max <- regions_account_ids[[r]][2]
+    id_range <- id_max - id_min
+    DT[region == r, account_id := ((account_id - id_min) * salt) %% id_range + id_min]
+  } # for regions
+
   return(DT)
 }
 
