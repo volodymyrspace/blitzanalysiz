@@ -1,6 +1,6 @@
 ---
 title: "Frequently Asked Questions"
-menutitle: FAQ
+linkTitle: FAQ
 date: `r today("UTC")`
 description: "Frequently Asked Questions"
 author: Jylpah@gmail.com
@@ -12,7 +12,7 @@ hidden: false
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, dev = 'svglite', fig.ext = 'svgz');
+knitr::opts_chunk$set(echo = TRUE, dev = "svglite", fig.ext = "svgz")
 ```
 
 ### 1. Where is the data from

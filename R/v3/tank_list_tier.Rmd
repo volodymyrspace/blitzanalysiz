@@ -10,7 +10,7 @@ tanks.enough_players <- get_tanks_enough_players(stats.tier.perf)
 ```
 ---
 title: "Tier `r get_tier_roman(tier)` tanks"
-menutitle: "Tanks"
+linkTitle: "Tanks"
 date: `r today("UTC")`
 author: Jylpah@gmail.com
 output: md_document
@@ -21,22 +21,22 @@ disableToc: false
 ---
 ```{r tank_list,results='asis'}
 for (ndx in order(Nations.str)) {
-    tank_nation <- Nations[[ndx]]
-    tank_list <- get_tank_list(
-        stats = stats.tier.perf,
-        tank_nation = tank_nation,
-        tank_tier = tier
+  tank_nation <- Nations[[ndx]]
+  tank_list <- get_tank_list(
+    stats = stats.tier.perf,
+    tank_nation = tank_nation,
+    tank_tier = tier
+  )
+  if (nrow(tank_list) > 0) {
+    cat(paste("\n##", Nations.str[[ndx]], "Tanks\n\n"))
+    cat(
+      md_tank_list(tank_list,
+        path = ".",
+        enough_players = tanks.enough_players
+      ),
+      sep = "\n"
     )
-    if (nrow(tank_list) > 0) {
-        cat(paste("\n##", Nations.str[[ndx]], "Tanks\n\n"))
-        cat(
-            md_tank_list(tank_list,
-                path = ".",
-                enough_players = tanks.enough_players
-            ),
-            sep = "\n"
-        )
-    }
+  }
 }
 # rm(stats.tier.perf)
 ```

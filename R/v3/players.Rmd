@@ -6,12 +6,12 @@ stopifnot(exists("target_page"))
 update <- get_path_elem(target_page, 2)
 preliminary <- is_preliminary(update)
 cols.sel <- c(
-    "account_id", "tank_id", "battles", "battles.career", "tier",
-    "nation", "type", "is_premium", "region", "battles.update",
-    "WR.update", "WR.tier.maxed"
+  "account_id", "tank_id", "battles", "battles.career", "tier",
+  "nation", "type", "is_premium", "region", "battles.update",
+  "WR.update", "WR.tier.maxed"
 )
 if (!exists("stats.update")) {
-    rm("stats.update")
+  rm("stats.update")
 }
 stats.update <- ds_load_ts_update(update, cols = cols.sel)
 stats.update.perf <- get_stats_tank_perf(ds_load_ts_maxed(update, cols = cols.sel))
@@ -22,8 +22,6 @@ var2rm <- c("res", "stats.update", "stats.update.perf")
 ```
 ---
 title: "Players"
-menutitle: "Players"
-linktitle: "Players (`r update_version(update)`)"
 date: `r today("UTC")`
 author: Jylpah@gmail.com
 output: md_document
@@ -37,17 +35,17 @@ disableToc: false
 
 ```{r update_overall_stats}
 s <- stats.update[, .(Battles = sum(battles)),
-    by = account_id
+  by = account_id
 ][, .(mean = mean(Battles), median = median(Battles), max = max(Battles))]
 ```
 The graph shows the  number of battles fought per player during the update `r update`. On average, players played `r round(s$mean,0)` battles and the median battle count was `r auto_format(s$median)`. The following tables shows battle counts by N% most inactive players during the update. 
 
 ```{r fig_update_battle_count_histogram}
 res <- stats.update[, .(Battles = sum(battles)),
-    by = account_id
+  by = account_id
 ]
 plot_histogram(res, "Battles played per Players", update, "Battles", "Share of Players %",
-    x_breaks = seq(0, 2500, 250), x_lims = c(0, 2500), x_signif = 2, y_step = 0.025, y_pct = TRUE, y_signif = 3
+  x_breaks = seq(0, 2500, 250), x_lims = c(0, 2500), x_signif = 2, y_step = 0.025, y_pct = TRUE, y_signif = 3
 )
 ```
 
@@ -58,7 +56,7 @@ The table below shows the (max) number of battles played during `r update` by th
 {{% expand "Show table" %}}
 ```{r update_battle_count_summary, echo = FALSE}
 md_table_quantiles(stats.update[, .(Battles = sum(battles)),
-    by = account_id
+  by = account_id
 ][, Battles], "Battles", breaks = seq(0, 1, .05))
 ```
 {{% /expand %}}
@@ -69,13 +67,13 @@ The graph shows WR distribution for players (y-axis) with during the update `r u
 
 ```{r fig_update_player_WR_histogram}
 res <- stats.update[battles > min_battles.update,
-    .(WR = first(WR.update)),
-    by = account_id
+  .(WR = first(WR.update)),
+  by = account_id
 ]
 plot_histogram(res, "Player WR distribution (active players)", update,
-    x_name = "WR", y_name = "Share of Players",
-    x_lims = c(0, 1), x_step = 0.1, x_pct = TRUE,
-    y_pct = TRUE, y_step = 0.01, bins = 100
+  x_name = "WR", y_name = "Share of Players",
+  x_lims = c(0, 1), x_step = 0.1, x_pct = TRUE,
+  y_pct = TRUE, y_step = 0.01, bins = 100
 )
 ```
 
@@ -85,12 +83,12 @@ From the **unfiltered** WR histogram one can see the bumbs at 0%, 25%, 33%, 50%,
 
 ```{r fig_update_player_WR_histogram_unfiltered}
 res <- stats.update[, .(WR = first(WR.update)),
-    by = account_id
+  by = account_id
 ]
 plot_histogram(res, "Player WR distribution (all players)", update,
-    x_name = "WR", y_name = "Share of Players",
-    x_lims = c(0, 1), x_step = 0.1, x_pct = TRUE,
-    y_pct = TRUE, y_step = 0.01, bins = 100
+  x_name = "WR", y_name = "Share of Players",
+  x_lims = c(0, 1), x_step = 0.1, x_pct = TRUE,
+  y_pct = TRUE, y_step = 0.01, bins = 100
 )
 ```
 
@@ -99,15 +97,15 @@ Listing player WR distribution for players with at least `r min_battles.update` 
 
 ```{r update_player_WR}
 h <- hist(stats.update[battles.update > min_battles.update,
-    .(WR = first(WR.update)),
-    by = account_id
+  .(WR = first(WR.update)),
+  by = account_id
 ][, WR], breaks = 100, plot = FALSE)
 h$density <- h$counts / sum(h$counts)
 h$cum <- cumsum(h$density)
 md_table(data.table(
-    "WR" = floor(100 * h$mids) / 100,
-    "% of players" = h$density,
-    "Cumulative share %" = h$cum
+  "WR" = floor(100 * h$mids) / 100,
+  "% of players" = h$density,
+  "Cumulative share %" = h$cum
 ))
 ```
 {{% /expand %}}
@@ -119,11 +117,11 @@ The following graph shows a histogram of share of players (y-axis) with certain 
 
 ```{r fig_update_player_avg_tier_histogram}
 res <- stats.update[battles.update > min_battles.update,
-    .("Average Tier" = sum(tier * battles) / sum(battles)),
-    by = account_id
+  .("Average Tier" = sum(tier * battles) / sum(battles)),
+  by = account_id
 ]
 plot_histogram(res, "Average Tier (active players)", update,
-    x_name = "Average Tier", y_name = "Share of Players %", x_lims = c(1, 10), x_step = 1, y_step = 0.01, mean = FALSE
+  x_name = "Average Tier", y_name = "Share of Players %", x_lims = c(1, 10), x_step = 1, y_step = 0.01, mean = FALSE
 )
 ```
 
@@ -131,10 +129,10 @@ The large number of players who played  only few battles during the update are c
 
 ```{r fig_update_player_avg_tier_histogram_unfiltered}
 res <- stats.update[, .("Average Tier" = sum(tier * battles) / sum(battles)),
-    by = account_id
+  by = account_id
 ]
 plot_histogram(res, "Average Tier (all players)", update,
-    x_name = "Average Tier", y_name = "Share of Players %", x_lims = c(1, 10), x_step = 1, y_step = 0.01, mean = FALSE
+  x_name = "Average Tier", y_name = "Share of Players %", x_lims = c(1, 10), x_step = 1, y_step = 0.01, mean = FALSE
 )
 ```
 
@@ -144,17 +142,17 @@ This graph shows player WR vs. average tier during the update `r update`. Minimu
 
 ```{r fig_tiers_WR_vs_avg_tier,warning=FALSE}
 res <- stats.update[(battles.update >= min_battles.update),
-    .(
-        "WR" = first(WR.update),
-        "Average Tier" = sum(tier * battles) / sum(battles)
-    ),
-    by = account_id
+  .(
+    "WR" = first(WR.update),
+    "Average Tier" = sum(tier * battles) / sum(battles)
+  ),
+  by = account_id
 ][order(WR)]
 plot_average_XY(res, "Player WR vs. Average Tier", update, "Average Tier", "WR",
-    x_breaks = seq(1, 10),
-    y_breaks = seq(0, 1, .1),
-    y_pct = TRUE,
-    y_lims = c(.3, .8), bins = 10
+  x_breaks = seq(1, 10),
+  y_breaks = seq(0, 1, .1),
+  y_pct = TRUE,
+  y_lims = c(.3, .8), bins = 10
 )
 ```
 
@@ -164,17 +162,17 @@ This chart shows share of players with certain WR (bar color-code) at certain ti
 
 ```{r fig_tiers_WR_per_tier}
 res <- stats.update.perf[,
-    .(WR = first(WR.tier.maxed)),
-    by = .(tier, account_id)
+  .(WR = first(WR.tier.maxed)),
+  by = .(tier, account_id)
 ][, .N, by = .(
-    Tier = tier,
-    WR = cut(WR,
-        breaks = buckets.WR,
-        include.lowest = TRUE
-    )
+  Tier = tier,
+  WR = cut(WR,
+    breaks = buckets.WR,
+    include.lowest = TRUE
+  )
 )][order(Tier, WR)]
 plot_col_share_discrete(res, "Player WR per Tier (with maxed-out tanks)", update,
-    x_name = "Tier", fill_var = "WR", y_buckets = buckets.WR
+  x_name = "Tier", fill_var = "WR", y_buckets = buckets.WR
 )
 ```
 
@@ -182,7 +180,7 @@ plot_col_share_discrete(res, "Player WR per Tier (with maxed-out tanks)", update
 
 ```{r fig_tiers_battles_per_tier}
 res <- stats.update[, .(Battles = sum(battles)),
-    by = .(Tier = tier)
+  by = .(Tier = tier)
 ][order(Tier)]
 battles.all <- res[, sum(Battles)]
 res[, "Share of Battles" := Battles / battles.all]
@@ -201,7 +199,7 @@ x_name <- "Tier"
 fill_name <- "Vehicle Class"
 title <- get_plot_title_share_of_by_by(y_name, x_name, fill_name)
 res <- stats.update[, .(N = sum(battles)),
-    by = .(Tier = tier, "Vehicle Class" = type)
+  by = .(Tier = tier, "Vehicle Class" = type)
 ][order(Tier, `Vehicle Class`)]
 plot_marimekko(res, title, update, x_name, fill_name, palette.fill = palette.vehicle_class)
 ```
@@ -244,12 +242,12 @@ Please note, this does **not** mean all the players per server, but just those w
 
 ```{r fig_region_players_per_server}
 res <- stats.update[, .(Players = uniqueN(account_id)),
-    by = .(Region = region)
+  by = .(Region = region)
 ]
 title <- "players by region"
 plot_col_discrete_1Y(res, title, update,
-    x_name = "Region", y_name = "Players", x_labels = regions,
-    y_pct = FALSE, x_ordered = FALSE, fill_var = NULL, y_step = 25e3
+  x_name = "Region", y_name = "Players", x_labels = regions,
+  y_pct = FALSE, x_ordered = FALSE, fill_var = NULL, y_step = 25e3
 )
 ```
 
@@ -259,13 +257,13 @@ This graph shows players' overall WR distribution during update `r update` on di
 
 ```{r fig_region_WR_distribution}
 res <- stats.update[battles.update > min_battles.update,
-    .("WR" = first(WR.update), "Region" = first(region)),
-    by = account_id
+  .("WR" = first(WR.update), "Region" = first(region)),
+  by = account_id
 ]
 x_breaks <- seq(.2, .8, .1)
 plot_prob_XY(res, "WR distribution per Region", update,
-    x_name = "WR", line_var = "Region",
-    x_breaks = x_breaks, y_step = 0.1, line_labels = regions, x_pct = TRUE, cumf = FALSE
+  x_name = "WR", line_var = "Region",
+  x_breaks = x_breaks, y_step = 0.1, line_labels = regions, x_pct = TRUE, cumf = FALSE
 )
 ```
 
@@ -280,8 +278,8 @@ This graphs shows the same information than the previous in different format. Th
 ```{r fig_region_WR_cum_distribution}
 x_breaks <- seq(.2, .8, .1)
 plot_prob_XY(res, "Cumulative WR distribution per Region", update,
-    x_name = "WR", line_var = "Region",
-    x_breaks = x_breaks, y_step = 0.1, line_labels = regions, x_pct = TRUE, cumf = TRUE
+  x_name = "WR", line_var = "Region",
+  x_breaks = x_breaks, y_step = 0.1, line_labels = regions, x_pct = TRUE, cumf = TRUE
 )
 ```
 
@@ -296,13 +294,13 @@ x_name <- "Region"
 fill_name <- "Nation"
 title <- "Popularity of Tank nation by Region"
 res <- stats.update[, .(N = sum(battles)),
-    by = .("Region" = region, Nation = nation)
+  by = .("Region" = region, Nation = nation)
 ][order(`Region`, Nation)]
 plot_col_share_discrete(res, "Popularity of Tank nation by Region", update,
-    x_name = "Region", fill_var = "Nation", y_title = "% of Battles",
-    x_labels = regions,
-    y_bucket_labels = Nations,
-    palette.fill = palette.nation, y_bucket_pct = FALSE
+  x_name = "Region", fill_var = "Nation", y_title = "% of Battles",
+  x_labels = regions,
+  y_bucket_labels = Nations,
+  palette.fill = palette.nation, y_bucket_pct = FALSE
 )
 ```
 
@@ -318,10 +316,10 @@ fill_name <- "Vehicle Class"
 title <- "Popularity of Vehicle classes by Region"
 res <- stats.update[, .(N = sum(battles)), by = .("Region" = region, "Vehicle Class" = type)][order(`Region`, `Vehicle Class`)]
 plot_col_share_discrete(res, "Popularity of Vehicle classes by Region", update,
-    x_name = "Region", fill_var = "Vehicle Class", y_title = "% of Battles",
-    x_labels = regions,
-    y_bucket_labels = Tank_Types,
-    palette.fill = palette.vehicle_class, y_bucket_pct = FALSE
+  x_name = "Region", fill_var = "Vehicle Class", y_title = "% of Battles",
+  x_labels = regions,
+  y_bucket_labels = Tank_Types,
+  palette.fill = palette.vehicle_class, y_bucket_pct = FALSE
 )
 ```
 

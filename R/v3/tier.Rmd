@@ -19,8 +19,7 @@ tanks.enough_players <- get_tanks_enough_players(stats.tier.perf)
 ```
 ---
 title: "Tier `r tier.roman` Tanks"
-menutitle: "Tier `r tier.roman`"
-linktitle: "Tier `r tier.roman` Tanks (`r update_version(update)`)"
+linkTitle: "Tier `r tier.roman`"
 date: `r today("UTC")`
 author: Jylpah@gmail.com
 output: md_document
@@ -32,11 +31,11 @@ disableToc: false
 
 ```{r update_tier_tanks_overall}
 s <- stats.tier[, .(Battles = sum(battles)),
-    by = account_id
+  by = account_id
 ][, .(
-    mean = mean(Battles),
-    median = median(Battles),
-    max = max(Battles)
+  mean = mean(Battles),
+  median = median(Battles),
+  max = max(Battles)
 )]
 ```
 
@@ -58,16 +57,16 @@ The graph shows the tanks with the highest _Relative WR_. That is the average of
 
 ```{r fig_tanks_tier_Relative_WR_topN}
 res <- head(stats.tier.perf[DT_filter_enough_battles.rWR(stats.tier.perf),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(-`Relative WR`)], n = topN)
 x_name <- "Tank"
 y_name <- "Relative WR"
@@ -92,34 +91,34 @@ The graphs show the best performing tanks by _Relative WR_ by player skill-level
 {{% expand "Relative WR - 65%+ players" %}}
 ```{r fig_tanks_tier_Relative_WR_topN_65_}
 res <- head(stats.tier.perf[
-    DT_filter_enough_battles.rWR(stats.tier.perf) &
-        (WR.tier.maxed > .65),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  DT_filter_enough_battles.rWR(stats.tier.perf) &
+    (WR.tier.maxed > .65),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(-`Relative WR`)], n = topN)
 if (nrow(res) > 0) {
-    x_name <- "Tank"
-    y_name <- "Relative WR"
-    res <- prep_plot_tank(res, y_name)
-    title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
-    title <- get_plot_title_subtitle(title, "Player WR at tier 65%+")
-    plot_col_discrete_1Y(res, title, update, x_name, y_name,
-        fill_var = "Vehicle Class",
-        y_pct = TRUE, top = TRUE, tier = tier
-    )
+  x_name <- "Tank"
+  y_name <- "Relative WR"
+  res <- prep_plot_tank(res, y_name)
+  title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
+  title <- get_plot_title_subtitle(title, "Player WR at tier 65%+")
+  plot_col_discrete_1Y(res, title, update, x_name, y_name,
+    fill_var = "Vehicle Class",
+    y_pct = TRUE, top = TRUE, tier = tier
+  )
 }
 ```
 ```{r tanks_tier_Relative_WR_topN_65_, results='asis'}
 if (nrow(res) == 0) {
-    cat("Not enough players to calculate Relative WR\n")
+  cat("Not enough players to calculate Relative WR\n")
 }
 ```
 {{% /expand %}}
@@ -127,34 +126,34 @@ if (nrow(res) == 0) {
 {{% expand "Relative WR - 55-65% players" %}}
 ```{r fig_tanks_tier_Relative_WR_topN_55_65}
 res <- head(stats.tier.perf[
-    DT_filter_enough_battles.rWR(stats.tier.perf) &
-        (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  DT_filter_enough_battles.rWR(stats.tier.perf) &
+    (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(-`Relative WR`)], n = topN)
 if (nrow(res) > 0) {
-    x_name <- "Tank"
-    y_name <- "Relative WR"
-    res <- prep_plot_tank(res, y_name)
-    title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
-    title <- get_plot_title_subtitle(title, "Player WR at tier 55-65%")
-    plot_col_discrete_1Y(res, title, update, x_name, y_name,
-        fill_var = "Vehicle Class",
-        y_pct = TRUE, y_step = .005, top = TRUE, tier = tier
-    )
+  x_name <- "Tank"
+  y_name <- "Relative WR"
+  res <- prep_plot_tank(res, y_name)
+  title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
+  title <- get_plot_title_subtitle(title, "Player WR at tier 55-65%")
+  plot_col_discrete_1Y(res, title, update, x_name, y_name,
+    fill_var = "Vehicle Class",
+    y_pct = TRUE, y_step = .005, top = TRUE, tier = tier
+  )
 }
 ```
 ```{r tanks_tier_Relative_WR_topN_55_65, results='asis'}
 if (nrow(res) == 0) {
-    cat("Not enough players to calculate Relative WR\n")
+  cat("Not enough players to calculate Relative WR\n")
 }
 ```
 {{% /expand %}}
@@ -162,34 +161,34 @@ if (nrow(res) == 0) {
 {{% expand "Relative WR - 45-55% players" %}}
 ```{r fig_tanks_tier_Relative_WR_topN_45_55}
 res <- head(stats.tier.perf[
-    DT_filter_enough_battles.rWR(stats.tier.perf) &
-        (WR.tier.maxed > .45) & (WR.tier.maxed <= .55),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  DT_filter_enough_battles.rWR(stats.tier.perf) &
+    (WR.tier.maxed > .45) & (WR.tier.maxed <= .55),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(-`Relative WR`)], n = topN)
 if (nrow(res) > 0) {
-    x_name <- "Tank"
-    y_name <- "Relative WR"
-    res <- prep_plot_tank(res, y_name)
-    title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
-    title <- get_plot_title_subtitle(title, "Player WR at tier 45-55%")
-    plot_col_discrete_1Y(res, title, update, x_name, y_name,
-        fill_var = "Vehicle Class",
-        y_pct = TRUE, y_step = .005, top = TRUE, tier = tier
-    )
+  x_name <- "Tank"
+  y_name <- "Relative WR"
+  res <- prep_plot_tank(res, y_name)
+  title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
+  title <- get_plot_title_subtitle(title, "Player WR at tier 45-55%")
+  plot_col_discrete_1Y(res, title, update, x_name, y_name,
+    fill_var = "Vehicle Class",
+    y_pct = TRUE, y_step = .005, top = TRUE, tier = tier
+  )
 }
 ```
 ```{r tanks_tier_Relative_WR_topN_45_55, results='asis'}
 if (nrow(res) == 0) {
-    cat("Not enough players to calculate Relative WR\n")
+  cat("Not enough players to calculate Relative WR\n")
 }
 ```
 {{% /expand %}}
@@ -197,31 +196,31 @@ if (nrow(res) == 0) {
 {{% expand "Relative WR - 0-45% players" %}}
 ```{r fig_tanks_tier_Relative_WR_topN_0_45}
 res <- head(stats.tier.perf[
-    DT_filter_enough_battles.rWR(stats.tier.perf) &
-        (WR.tier.maxed <= .45),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  DT_filter_enough_battles.rWR(stats.tier.perf) &
+    (WR.tier.maxed <= .45),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(-`Relative WR`)], n = topN)
 if (nrow(res) > 0) {
-    x_name <- "Tank"
-    y_name <- "Relative WR"
-    res <- prep_plot_tank(res, y_name)
-    title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
-    title <- get_plot_title_subtitle(title, "Player WR at tier 0-45%")
-    plot_col_discrete_1Y(res, title, update, x_name, y_name, fill_var = "Vehicle Class", y_pct = TRUE, y_step = .005, top = TRUE, tier = tier)
+  x_name <- "Tank"
+  y_name <- "Relative WR"
+  res <- prep_plot_tank(res, y_name)
+  title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
+  title <- get_plot_title_subtitle(title, "Player WR at tier 0-45%")
+  plot_col_discrete_1Y(res, title, update, x_name, y_name, fill_var = "Vehicle Class", y_pct = TRUE, y_step = .005, top = TRUE, tier = tier)
 }
 ```
 ```{r tanks_tier_Relative_WR_topN_0_45, results='asis'}
 if (nrow(res) == 0) {
-    cat("Not enough players to calculate Relative WR\n")
+  cat("Not enough players to calculate Relative WR\n")
 }
 ```
 {{% /expand %}}
@@ -233,12 +232,12 @@ This graph shows the tanks with the highest average WR at tier `r tier.roman` du
 
 ```{r fig_tanks_tier_WR_topN}
 res <- head(stats.tier.perf[, .(
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(-`Average WR`)], n = topN)
@@ -264,13 +263,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_avg_dmg_topN}
 res <- head(stats.tier.perf[, .(
-    "Average Damage" = mean(avg_dmg),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Average Damage" = mean(avg_dmg),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(-`Average Damage`)], n = topN)
@@ -279,9 +278,9 @@ y_name <- "Average Damage"
 res <- prep_plot_tank(res, y_name)
 title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
 plot_col_discrete_1Y(res, title, update, x_name, y_name,
-    fill_var = "Vehicle Class",
-    y_pct = FALSE, top = TRUE, y_steps = 20,
-    tier = tier
+  fill_var = "Vehicle Class",
+  y_pct = FALSE, top = TRUE, y_steps = 20,
+  tier = tier
 )
 ```
 
@@ -298,13 +297,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_avg_kills_topN}
 res <- head(stats.tier.perf[, .(
-    "Average Kills/Battle" = mean(avg_kills),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Average Kills/Battle" = mean(avg_kills),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(-`Average Kills/Battle`)], n = topN)
@@ -313,9 +312,9 @@ y_name <- "Average Kills/Battle"
 res <- prep_plot_tank(res, y_name)
 title <- get_plot_title_top_tanks(y_name, top = TRUE, topN = topN)
 plot_col_discrete_1Y(res, title, update, x_name, y_name,
-    fill_var = "Vehicle Class",
-    y_pct = FALSE, top = TRUE, y_steps = 10,
-    tier = tier
+  fill_var = "Vehicle Class",
+  y_pct = FALSE, top = TRUE, y_steps = 10,
+  tier = tier
 )
 ```
 
@@ -332,13 +331,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_spot_rate_topN}
 res <- head(stats.tier.perf[, .(
-    "Spot Rate" = mean(spot_rate),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Spot Rate" = mean(spot_rate),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(-`Spot Rate`)], n = topN)
@@ -349,8 +348,8 @@ top <- TRUE
 res <- prep_plot_tank(res, y_name)
 title <- get_plot_title_top_tanks(y_name, top = top, topN = topN)
 plot_col_discrete_1Y(res, title, update, x_name, y_name,
-    fill_var = "Vehicle Class",
-    y_pct = FALSE, top = top, tier = tier, y_step = 0.2, y_signif = 3
+  fill_var = "Vehicle Class",
+  y_pct = FALSE, top = top, tier = tier, y_step = 0.2, y_signif = 3
 )
 ```
 
@@ -367,13 +366,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_hit_rate_topN}
 res <- head(stats.tier.perf[, .(
-    "Hit Rate" = mean(hit_rate, na.rm = TRUE),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Hit Rate" = mean(hit_rate, na.rm = TRUE),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(-`Hit Rate`)], n = topN)
@@ -384,8 +383,8 @@ top <- TRUE
 res <- prep_plot_tank(res, y_name)
 title <- get_plot_title_top_tanks(y_name, top = top, topN = topN)
 plot_col_discrete_1Y(res, title, update, x_name, y_name,
-    fill_var = "Vehicle Class",
-    y_pct = TRUE, top = top, tier = tier, y_step = 0.2, y_signif = 3
+  fill_var = "Vehicle Class",
+  y_pct = TRUE, top = top, tier = tier, y_step = 0.2, y_signif = 3
 )
 ```
 
@@ -402,13 +401,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_most_popular}
 res <- head(stats.tier[, .(
-    "Players" = uniqueN(account_id),
-    "Battles" = sum(battles),
-    "Battles/Player" = mean(battles),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Players" = uniqueN(account_id),
+  "Battles" = sum(battles),
+  "Battles/Player" = mean(battles),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][order(-Players)], n = topN)
@@ -427,13 +426,13 @@ This graph shows the most played tanks by number of battles during the update `r
 
 ```{r fig_tanks_tier_most_played}
 res <- head(stats.tier[, .(
-    "Players" = uniqueN(account_id),
-    "Battles" = sum(battles),
-    "Battles/Player" = mean(battles),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Players" = uniqueN(account_id),
+  "Battles" = sum(battles),
+  "Battles/Player" = mean(battles),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][order(-Battles)], n = topN)
@@ -443,8 +442,8 @@ top <- TRUE
 res <- prep_plot_tank(res, y_name)
 title <- get_plot_title_top_tanks(y_name, top = top, topN = topN)
 plot_col_discrete_1Y(res, title, update, x_name, y_name,
-    fill_var = "Vehicle Class",
-    y_pct = FALSE, top = top, tier = tier, y_steps = 10
+  fill_var = "Vehicle Class",
+  y_pct = FALSE, top = top, tier = tier, y_steps = 10
 )
 ```
 
@@ -459,7 +458,7 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 ```{r}
 ## Stop execution if there are max topN (20) tanks that fit in TOP 20 tanks graphs already.
 if (stats.tier[, uniqueN(tank_id)] <= topN) {
-    knitr::knit_exit()
+  knitr::knit_exit()
 }
 ```
 
@@ -480,16 +479,16 @@ The graph shows the tanks with the lowest _Relative WR_. That is the average of 
 
 ```{r fig_tanks_tier_Relative_WR_bottomN}
 res <- head(stats.tier.perf[DT_filter_enough_battles.rWR(stats.tier.perf),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(`Relative WR`)], n = topN)
 x_name <- "Tank"
 y_name <- "Relative WR"
@@ -514,34 +513,34 @@ The graphs show the worst performing tanks by _Relative WR_ by player skill-leve
 {{% expand "Relative WR - 65%+ players" %}}
 ```{r fig_tanks_tier_Relative_WR_bottomN_65_}
 res <- head(stats.tier.perf[
-    DT_filter_enough_battles.rWR(stats.tier.perf) &
-        (WR.tier.maxed > .65),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  DT_filter_enough_battles.rWR(stats.tier.perf) &
+    (WR.tier.maxed > .65),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(`Relative WR`)], n = topN)
 if (nrow(res) > 0) {
-    x_name <- "Tank"
-    y_name <- "Relative WR"
-    res <- prep_plot_tank(res, y_name)
-    title <- get_plot_title_top_tanks(y_name, top = FALSE, topN = topN)
-    title <- get_plot_title_subtitle(title, "Player WR at tier 65%+")
-    plot_col_discrete_1Y(res, title, update, x_name, y_name,
-        fill_var = "Vehicle Class",
-        y_pct = TRUE, top = FALSE, tier = tier
-    )
+  x_name <- "Tank"
+  y_name <- "Relative WR"
+  res <- prep_plot_tank(res, y_name)
+  title <- get_plot_title_top_tanks(y_name, top = FALSE, topN = topN)
+  title <- get_plot_title_subtitle(title, "Player WR at tier 65%+")
+  plot_col_discrete_1Y(res, title, update, x_name, y_name,
+    fill_var = "Vehicle Class",
+    y_pct = TRUE, top = FALSE, tier = tier
+  )
 }
 ```
 ```{r tanks_tier_Relative_WR_bottomN_65_, results='asis'}
 if (nrow(res) == 0) {
-    cat("Not enough players to calculate Relative WR\n")
+  cat("Not enough players to calculate Relative WR\n")
 }
 ```
 {{% /expand %}}
@@ -549,34 +548,34 @@ if (nrow(res) == 0) {
 {{% expand "Relative WR - 55-65% players" %}}
 ```{r fig_tanks_tier_Relative_WR_bottomN_55_65}
 res <- head(stats.tier.perf[
-    DT_filter_enough_battles.rWR(stats.tier.perf) &
-        (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  DT_filter_enough_battles.rWR(stats.tier.perf) &
+    (WR.tier.maxed > .55) & (WR.tier.maxed <= .65),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(`Relative WR`)], n = topN)
 if (nrow(res) > 0) {
-    x_name <- "Tank"
-    y_name <- "Relative WR"
-    res <- prep_plot_tank(res, y_name)
-    title <- get_plot_title_top_tanks(y_name, top = FALSE, topN = topN)
-    title <- get_plot_title_subtitle(title, "Player WR at tier 55-65%")
-    plot_col_discrete_1Y(res, title, update, x_name, y_name,
-        fill_var = "Vehicle Class",
-        y_pct = TRUE, y_step = .005, top = FALSE, tier = tier
-    )
+  x_name <- "Tank"
+  y_name <- "Relative WR"
+  res <- prep_plot_tank(res, y_name)
+  title <- get_plot_title_top_tanks(y_name, top = FALSE, topN = topN)
+  title <- get_plot_title_subtitle(title, "Player WR at tier 55-65%")
+  plot_col_discrete_1Y(res, title, update, x_name, y_name,
+    fill_var = "Vehicle Class",
+    y_pct = TRUE, y_step = .005, top = FALSE, tier = tier
+  )
 }
 ```
 ```{r tanks_tier_Relative_WR_bottomN_55_65, results='asis'}
 if (nrow(res) == 0) {
-    cat("Not enough players to calculate Relative WR\n")
+  cat("Not enough players to calculate Relative WR\n")
 }
 ```
 {{% /expand %}}
@@ -584,34 +583,34 @@ if (nrow(res) == 0) {
 {{% expand "Relative WR - 45-55% players" %}}
 ```{r fig_tanks_tier_Relative_WR_bottomN_45_55}
 res <- head(stats.tier.perf[
-    DT_filter_enough_battles.rWR(stats.tier.perf) &
-        (WR.tier.maxed > .45) & (WR.tier.maxed <= .55),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  DT_filter_enough_battles.rWR(stats.tier.perf) &
+    (WR.tier.maxed > .45) & (WR.tier.maxed <= .55),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(`Relative WR`)], n = topN)
 if (nrow(res) > 0) {
-    x_name <- "Tank"
-    y_name <- "Relative WR"
-    res <- prep_plot_tank(res, y_name)
-    title <- get_plot_title_top_tanks(y_name, top = FALSE, topN = topN)
-    title <- get_plot_title_subtitle(title, "Player WR at tier 45-55%")
-    plot_col_discrete_1Y(res, title, update, x_name, y_name,
-        fill_var = "Vehicle Class",
-        y_pct = TRUE, y_step = .005, top = FALSE, tier = tier
-    )
+  x_name <- "Tank"
+  y_name <- "Relative WR"
+  res <- prep_plot_tank(res, y_name)
+  title <- get_plot_title_top_tanks(y_name, top = FALSE, topN = topN)
+  title <- get_plot_title_subtitle(title, "Player WR at tier 45-55%")
+  plot_col_discrete_1Y(res, title, update, x_name, y_name,
+    fill_var = "Vehicle Class",
+    y_pct = TRUE, y_step = .005, top = FALSE, tier = tier
+  )
 }
 ```
 ```{r tanks_tier_Relative_WR_bottomN_45_55, results='asis'}
 if (nrow(res) == 0) {
-    cat("Not enough players to calculate Relative WR\n")
+  cat("Not enough players to calculate Relative WR\n")
 }
 ```
 {{% /expand %}}
@@ -619,31 +618,31 @@ if (nrow(res) == 0) {
 {{% expand "Relative WR - 0-45% players" %}}
 ```{r fig_tanks_tier_Relative_WR_bottomN_0_45}
 res <- head(stats.tier.perf[
-    DT_filter_enough_battles.rWR(stats.tier.perf) &
-        (WR.tier.maxed <= .45),
-    .(
-        "Average WR" = mean(WR),
-        "Relative WR" = mean(rWR),
-        "Player WR at Tier" = mean(WR.tier.maxed),
-        "Players" = uniqueN(account_id),
-        "Battles/Player" = mean(battles),
-        "Vehicle Class" = first(type),
-        "Premium" = first(is_premium)
-    ),
-    by = name
+  DT_filter_enough_battles.rWR(stats.tier.perf) &
+    (WR.tier.maxed <= .45),
+  .(
+    "Average WR" = mean(WR),
+    "Relative WR" = mean(rWR),
+    "Player WR at Tier" = mean(WR.tier.maxed),
+    "Players" = uniqueN(account_id),
+    "Battles/Player" = mean(battles),
+    "Vehicle Class" = first(type),
+    "Premium" = first(is_premium)
+  ),
+  by = name
 ][Players >= min_players.tank][order(`Relative WR`)], n = topN)
 if (nrow(res) > 0) {
-    x_name <- "Tank"
-    y_name <- "Relative WR"
-    res <- prep_plot_tank(res, y_name)
-    title <- get_plot_title_top_tanks(y_name, top = FALSE, topN = topN)
-    title <- get_plot_title_subtitle(title, "Player WR at tier 0-45%")
-    plot_col_discrete_1Y(res, title, update, x_name, y_name, fill_var = "Vehicle Class", y_pct = TRUE, y_step = .005, top = FALSE, tier = tier)
+  x_name <- "Tank"
+  y_name <- "Relative WR"
+  res <- prep_plot_tank(res, y_name)
+  title <- get_plot_title_top_tanks(y_name, top = FALSE, topN = topN)
+  title <- get_plot_title_subtitle(title, "Player WR at tier 0-45%")
+  plot_col_discrete_1Y(res, title, update, x_name, y_name, fill_var = "Vehicle Class", y_pct = TRUE, y_step = .005, top = FALSE, tier = tier)
 }
 ```
 ```{r tanks_tier_Relative_WR_bottomN_0_45, results='asis'}
 if (nrow(res) == 0) {
-    cat("Not enough players to calculate Relative WR\n")
+  cat("Not enough players to calculate Relative WR\n")
 }
 ```
 {{% /expand %}}
@@ -656,12 +655,12 @@ This graph shows the tanks with the lowest average WR at tier `r tier.roman` dur
 
 ```{r fig_tanks_tier_WR_bottomN}
 res <- head(stats.tier.perf[, .(
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(`Average WR`)], n = topN)
@@ -687,13 +686,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_avg_dmg_bottomN}
 res <- head(stats.tier.perf[, .(
-    "Average Damage" = mean(avg_dmg),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Average Damage" = mean(avg_dmg),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(`Average Damage`)], n = topN)
@@ -717,13 +716,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_avg_kills_bottomN}
 res <- head(stats.tier.perf[, .(
-    "Average Kills/Battle" = mean(avg_kills),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Average Kills/Battle" = mean(avg_kills),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(`Average Kills/Battle`)], n = topN)
@@ -733,8 +732,8 @@ top <- FALSE
 res <- prep_plot_tank(res, y_name)
 title <- get_plot_title_top_tanks(y_name, top = top, topN = topN)
 plot_col_discrete_1Y(res, title, update, x_name, y_name,
-    fill_var = "Vehicle Class",
-    y_pct = FALSE, top = top, tier = tier, y_steps = 10
+  fill_var = "Vehicle Class",
+  y_pct = FALSE, top = top, tier = tier, y_steps = 10
 )
 ```
 
@@ -752,13 +751,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_spot_rate_bottomN}
 res <- head(stats.tier.perf[, .(
-    "Spot Rate" = mean(spot_rate),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Spot Rate" = mean(spot_rate),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(`Spot Rate`)], n = topN)
@@ -768,8 +767,8 @@ y_name <- "Spot Rate"
 res <- prep_plot_tank(res, y_name)
 title <- get_plot_title_top_tanks(y_name, top = FALSE, topN = topN)
 plot_col_discrete_1Y(res, title, update, x_name, y_name,
-    fill_var = "Vehicle Class",
-    y_pct = FALSE, top = FALSE, tier = tier, y_step = 0.2, y_signif = 3
+  fill_var = "Vehicle Class",
+  y_pct = FALSE, top = FALSE, tier = tier, y_step = 0.2, y_signif = 3
 )
 ```
 
@@ -786,13 +785,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_hit_rate_bottomN}
 res <- head(stats.tier.perf[, .(
-    "Hit Rate" = mean(hit_rate, na.rm = TRUE),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Players" = uniqueN(account_id),
-    "Battles/Player" = mean(battles),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Hit Rate" = mean(hit_rate, na.rm = TRUE),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Players" = uniqueN(account_id),
+  "Battles/Player" = mean(battles),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][Players >= min_players.tank][order(`Hit Rate`)], n = topN)
@@ -803,8 +802,8 @@ top <- FALSE
 res <- prep_plot_tank(res, y_name)
 title <- get_plot_title_top_tanks(y_name, top = top, topN = topN)
 plot_col_discrete_1Y(res, title, update, x_name, y_name,
-    fill_var = "Vehicle Class",
-    y_pct = TRUE, top = top, tier = tier, y_step = 0.2, y_signif = 3
+  fill_var = "Vehicle Class",
+  y_pct = TRUE, top = top, tier = tier, y_step = 0.2, y_signif = 3
 )
 ```
 
@@ -821,13 +820,13 @@ md_table(res, update_path_lvl = page_level_update, enough_players = tanks.enough
 
 ```{r fig_tanks_tier_least_popular}
 res <- head(stats.tier[, .(
-    "Players" = uniqueN(account_id),
-    "Battles" = sum(battles),
-    "Battles/Player" = mean(battles),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Players" = uniqueN(account_id),
+  "Battles" = sum(battles),
+  "Battles/Player" = mean(battles),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][order(Players)], n = topN)
@@ -847,13 +846,13 @@ This graph shows the most played tanks by number of battles during the update `r
 
 ```{r fig_tanks_tier_least_played}
 res <- head(stats.tier[, .(
-    "Players" = uniqueN(account_id),
-    "Battles" = sum(battles),
-    "Battles/Player" = mean(battles),
-    "Average WR" = mean(WR),
-    "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
-    "Vehicle Class" = first(type),
-    "Premium" = first(is_premium)
+  "Players" = uniqueN(account_id),
+  "Battles" = sum(battles),
+  "Battles/Player" = mean(battles),
+  "Average WR" = mean(WR),
+  "Player WR at Tier" = mean(WR.tier.maxed, na.rm = TRUE),
+  "Vehicle Class" = first(type),
+  "Premium" = first(is_premium)
 ),
 by = name
 ][order(Battles)], n = topN)

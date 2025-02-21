@@ -1,6 +1,5 @@
 ---
 title: BlitzAnalysiz[]
-menutitle: Home
 archetype: "home"
 date: `r today("UTC")`
 author: Jylpah@gmail.com
@@ -8,7 +7,7 @@ disableToc: false
 output: md_document
 weight: 1
 alwaysopen: true
-description: "Stats analysis of World of Tanks Blitz mobile tank game"
+description: "Stats analysis of World of Tanks Blitz"
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width = 8, fig.height = 6, dpi = 150, echo = FALSE, dev = "svglite", fig.ext = "svgz")

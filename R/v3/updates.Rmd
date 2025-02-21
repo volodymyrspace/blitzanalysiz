@@ -1,6 +1,5 @@
 ---
 title: "Blitz Updates" 
-menutitle: "Stats"
 date: `r today("UTC")`
 author: Jylpah@gmail.com
 output: md_document
