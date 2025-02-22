@@ -120,17 +120,19 @@ cols.ratio <- c("Spot Rate", "KDR", "Damage Ratio", "Hits/Battle", "Average Kill
 cols.pct <- c("%", "WR", "Hit Rate")
 cols.int <- c("Battles", "Players", "Battles/Player", "Average Damage")
 
-xp.grind <- list(
+xp_grind <- list(
   "1" = 0, "2" = 1350, "3" = 3800, "4" = 9150, "5" = 18000,
   "6" = 41500, "7" = 69500, "8" = 125000, "9" = 227500, "10" = 270000
 )
 
-xp.median <- list(
+xp_median <- list(
   "1" = 309.3, "2" = 338.5, "3" = 342.8, "4" = 412.7, "5" = 435.4,
   "6" = 527.3, "7" = 595.7, "8" = 642.5, "9" = 727.0, "10" = 786.0
 )
 
-min_battles.grinds <- floor(unlist(Map("/", xp.grind, xp.median)) / 1.5^2)
+xp_booster <- 2.5
+
+min_battles.grinds <- floor(unlist(Map("/", xp_grind, lapply(xp_median, "*", xp_booster))) / 1.5^2)
 min_battles.tanks <- c(10, 10, 15, 15, rep(20, 6))
 min_battles.tiers <- 2 * min_battles.tanks
 
