@@ -4,8 +4,6 @@ source("R/utils_knitr.R")
 source("R/utils_plot.R")
 ## R functions
 
-library("primes")
-
 get_stats.update.tier <- function(tierN = NULL, DT = NULL) {
   stopifnot(!is.null(tierN))
   if (!is.null(DT)) {

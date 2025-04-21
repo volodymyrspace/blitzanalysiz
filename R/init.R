@@ -49,7 +49,7 @@ pkgs.loop <- c(
 
 pkgs <- c(
   pkgs.loop, "doParallel", "Hmisc", "mongolite", "progress",
-  "RhpcBLASctl", "httr", "ndjson", "jsonlite"
+  "RhpcBLASctl", "httr", "ndjson", "jsonlite", "primes"
 )
 
 # font_import(paths = "/usr/share/fonts/",prompt = F)
