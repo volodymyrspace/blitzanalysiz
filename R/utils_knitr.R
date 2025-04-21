@@ -633,7 +633,6 @@ pl_build <- function(pagelist,
 
 pl_build_future <- function(pagelist,
                             update = get_latest_update(),
-                            # stats.update = stats.update,
                             force = FALSE,
                             sorted = TRUE,
                             pkgs = pkgs.loop,
@@ -664,10 +663,9 @@ pl_build_future <- function(pagelist,
     done <- rep(FALSE, n_pages)
     tasks <- seq(1:n_pages)
 
-    ###
-    plan(get(f.plan), workers = n_cores)
+     plan(get(f.plan), workers = n_cores)
     message(paste("Plan =", f.plan, "using", n_cores, "cores"))
-    ###
+
     if (n_pages > 0) {
         for (i in 1:n_pages) {
             r_script <- r_scripts[[i]]
@@ -685,8 +683,6 @@ pl_build_future <- function(pagelist,
                                     force = force,
                                     multi_process = TRUE
                                 )
-
-                                # }, error = function(e) print(e), warning = function(w) print(w))
                             },
                             error = function(e) {
                                 message(conditionMessage(e))
